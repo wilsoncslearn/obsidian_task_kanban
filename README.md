@@ -265,6 +265,7 @@ npm run dev      # 监听构建
 npm run build    # 类型检查 + 压缩生产构建（保留类名），输出 main.js
 npm test         # 核心逻辑 + 冒烟测试 + 布局回归
 npm run check:dist   # 生产构建并核对 Vault 中的三个分发文件
+npm run lint         # Obsidian 官方 lint 规则（目前只报告问题，不阻断提交）
 ```
 
 - 优先在独立测试 Vault 验证；不要用个人日记做自动化测试。
