@@ -13,10 +13,12 @@ const productionSource=await fs.readFile(productionPath,'utf8');
 const wrappedModule={exports:{}};
 new Function('require','module','exports',productionSource)(id=>id==='obsidian'?O:require(id),wrappedModule,wrappedModule.exports);
 const Plugin=wrappedModule.exports.default;
-const root=await fs.mkdtemp(path.join(os.tmpdir(),'lubi-updater-test-'));
+// The installer works on realpath'd folders; on Windows os.tmpdir() can be an 8.3 short path, so resolve it once.
+const tmp=await fs.realpath(os.tmpdir());
+const root=await fs.mkdtemp(path.join(tmp,'lubi-updater-test-'));
 const native={readFile:fs.readFile,writeFile:fs.writeFile,rename:fs.rename,mkdtemp:fs.mkdtemp};
 const backups=[];
-fs.mkdtemp=async (...args)=>{const result=await native.mkdtemp(...args);if(result.startsWith(path.join(os.tmpdir(),'Lubi-plugin-backups')+path.sep))backups.push(result);return result;};
+fs.mkdtemp=async (...args)=>{const result=await native.mkdtemp(...args);if(result.startsWith(path.join(tmp,'Lubi-plugin-backups')+path.sep))backups.push(result);return result;};
 let serial=0,requests=0;
 const prefix='https://github.com/wilsoncslearn/obsidian_task_kanban/releases';
 const files=['main.js','styles.css','manifest.json'];
@@ -98,7 +100,7 @@ try {
   for(const scenario of ['backup','stage','commit','ambiguous','rollback','external','rollback-conflict']){
     const f=await fixture();let failOnce=true;
     if(scenario==='backup'||scenario==='stage')fs.writeFile=async (file,...args)=>{
-      if(failOnce&&String(file).endsWith('styles.css')&&(scenario==='backup'?String(file).startsWith(path.join(os.tmpdir(),'Lubi-plugin-backups')):String(file).includes('.lubi-update'))){failOnce=false;throw new Error('synthetic write failure');}
+      if(failOnce&&String(file).endsWith('styles.css')&&(scenario==='backup'?String(file).startsWith(path.join(tmp,'Lubi-plugin-backups')):String(file).includes('.lubi-update'))){failOnce=false;throw new Error('synthetic write failure');}
       return native.writeFile(file,...args);
     };
     if(['commit','ambiguous','rollback','rollback-conflict'].includes(scenario))fs.rename=async (from,to)=>{
@@ -160,6 +162,6 @@ try {
 } finally {
   Object.assign(fs,native);O.Platform.isDesktopApp=true;O.setRequestUrlHandler(null);
   // Delete only verified isolated fixtures and directories created by this test.
-  assert(path.resolve(root).startsWith(path.resolve(os.tmpdir())+path.sep));await fs.rm(root,{recursive:true,force:true});
-  for(const backup of backups){assert(path.resolve(backup).startsWith(path.resolve(os.tmpdir(),'Lubi-plugin-backups')+path.sep));await fs.rm(backup,{recursive:true,force:true});}
+  assert(path.resolve(root).startsWith(path.resolve(tmp)+path.sep));await fs.rm(root,{recursive:true,force:true});
+  for(const backup of backups){assert(path.resolve(backup).startsWith(path.resolve(tmp,'Lubi-plugin-backups')+path.sep));await fs.rm(backup,{recursive:true,force:true});}
 }
