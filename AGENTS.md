@@ -11,10 +11,16 @@
 ## 验证与版本
 
 - 先看 git 状态与现有改动，不覆盖他人的未提交工作。
-- 用锁文件安装，执行 build、core、smoke、layout；布局验证设置 `LUBI_REQUIRE_BROWSER=1`，不能将浏览器跳过当作通过。
+- 用锁文件安装（`npm ci`）。提交前在 `插件源码/lubi` 运行 `LUBI_REQUIRE_BROWSER=1 npm test`（core、smoke、layout 全量）和 `npm run check:dist`；不能将浏览器跳过当作通过。
 - 生产包使用 minify + keepNames；可通过 `LUBI_TEST_PLUGIN` 指向实际 bundle 运行完整冒烟测试。
-- 同步 manifest、package、package-lock 根版本和 versions.json；核对随 Vault 分发的三个文件哈希。
+- 同步 manifest、package、package-lock 根版本和 versions.json；`npm run check:dist` 会核对版本对应关系，以及随 Vault 分发的三个文件与生产构建一致。
 - 构建或模拟 UI 通过不等于真实 Obsidian / 移动端通过，报告未验证项，不擅自创建 Release / 标签。
+
+## 样式与测试
+
+- 样式直接修改原有规则，不在文件末尾追加覆盖规则；焦点与选中状态统一用 `--focus-*` 变量（边框加粗加深，不加外圈）。
+- 测试按类型放在 `test/core/`（纯逻辑）、`test/smoke/`（模拟 Obsidian 交互）、`test/layout/`（真实浏览器布局），公共代码放 `test/helpers/`；生成物与日志写到被忽略的 `test/.out/`。新增测试不用改 `package.json`。
+- 布局测试用 `test/helpers/page.mjs` 的 `writePage` 写页面，页面必须声明 UTF-8（中文 Windows 上的 Chrome 会把未声明编码的页面按 GBK 解析）；浏览器路径统一用 `test/helpers/browser.mjs`，可用 `LUBI_BROWSER` 指定。
 
 ## Git 与隐私
 
