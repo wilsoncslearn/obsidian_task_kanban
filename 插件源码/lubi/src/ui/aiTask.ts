@@ -31,7 +31,7 @@ function validDraft(value: unknown): AiDraft {
   if (!title) throw new Error("AI 没有识别出任务名称，请补充具体目标");
   const out: AiDraft = { title };
   for (const key of ["category", "date", "start", "startDate", "endDate"] as const) {
-    if (typeof x[key] === "string" && x[key]) out[key] = x[key] as never;
+    if (typeof x[key] === "string" && x[key]) out[key] = x[key];
   }
   if (x.location !== undefined && (typeof x.location !== "string" || x.location.length > 200)) throw new Error("AI 返回的地点必须是不超过 200 字符的文字");
   if (typeof x.location === "string") out.location = x.location.trim();

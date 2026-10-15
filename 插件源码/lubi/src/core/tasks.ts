@@ -630,7 +630,7 @@ function normalize(t: Partial<Task>): Task {
   return {
     ...b,
     ...t,
-    repeat: { kind: t.repeat?.kind || "none", days: Array.isArray(t.repeat?.days) ? t.repeat!.days : [] },
+    repeat: { kind: t.repeat?.kind || "none", days: Array.isArray(t.repeat?.days) ? t.repeat.days : [] },
     doneDates: Array.isArray(t.doneDates) ? t.doneDates : [],
     skipDates: Array.isArray(t.skipDates) ? t.skipDates : [],
     order: typeof t.order === "number" ? t.order : b.order,

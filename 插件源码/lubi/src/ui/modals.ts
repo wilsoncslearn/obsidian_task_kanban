@@ -699,7 +699,6 @@ export class TaskModal extends Modal {
     this.modalEl.toggleClass("lubi-time-entry", !!this.opts.actualRequired);
     this.modalEl.toggleClass("lubi-light-task", this.lightPlanning);
     const s = this.plugin.settings;
-    const cat = categoryOf(s, this.t.category);
     this.modalEl.style.setProperty("--chip", "var(--color-ink)");
     titleEl.empty();
     titleEl.createSpan({ text: this.opts.actualRequired ? "记我的用时" : this.editing ? "编辑任务" : "新建任务" });

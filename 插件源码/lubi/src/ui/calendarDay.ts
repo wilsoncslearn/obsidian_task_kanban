@@ -7,10 +7,10 @@ import { positionDragReadout } from "./dragReadout";
 import { Notice } from "obsidian";
 import type LubiPlugin from "../main";
 import { formatEstimateComparison, confirmed, isPending, PENDING_KEY, ParsedLine, Rec } from "../core/records";
-import { fmtDuration, fmtHours, hmToMin, minToHM, nowHM, shiftDate, shortDate, todayStr } from "../core/time";
+import { fmtDuration, fmtHours, hmToMin, minToHM, nowHM, shortDate, todayStr } from "../core/time";
 import { dayTimeStats, invalidTimedSpan } from "../core/metrics";
 import { categoryOf } from "../settings";
-import { button, el, HOUR_PX, infoTip, icon, iconButton, stopAll, tip, undoNotice } from "./components";
+import { button, HOUR_PX, infoTip, icon, iconButton, stopAll, tip, undoNotice } from "./components";
 import { minuteAt, startDrag } from "./drag";
 import { RecordModal, TaskModal, openUnifiedRecord } from "./modals";
 import { dayTasks, deleteRecord, OpenRecord, syncLinkedTask } from "./taskList";
@@ -19,7 +19,6 @@ import { planOccurrences } from "../core/planning";
 import { updateScheduleWithUndo } from "./tasks";
 import { renderDayDistribution } from "./daySummary";
 
-const PX_PER_MIN = HOUR_PX / 60;
 // A dedicated header row keeps the plan-lane title above midnight tasks.
 const DAY_START_GUTTER_PX = 32;
 const DAY_END_GUTTER_PX = 16;

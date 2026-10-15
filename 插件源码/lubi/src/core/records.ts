@@ -33,7 +33,7 @@ export interface ParsedLine {
 }
 
 const LINE_RE = /^-\s+(\d{1,2}:\d{2})(?:\s*[–\-~到至]\s*(\d{1,2}:\d{2}))?\s+(\S+?)\s*[·:：]\s*(.*)$/;
-const FIELD_RE = /\[([^\[\]:]+)::\s*([^\]]*)\]/g;
+const FIELD_RE = /\[([^[\]:]+)::\s*([^\]]*)\]/g;
 
 const KNOWN: Record<string, keyof Rec> = {
   时长: "minutes",
@@ -93,7 +93,7 @@ export function parseRecordLine(line: string, date: string): Rec | null {
       if (estimate !== undefined) rec.estimatedMinutes = estimate;
       else extra[k] = v; // 无效手写字段仍原样保留，但不用于对比。
     } else if (key === "task") rec.task = v || undefined;
-    else if (key === "amount") rec.amount = v === "" ? undefined : Number(v.replace(/[^\d.\-]/g, ""));
+    else if (key === "amount") rec.amount = v === "" ? undefined : Number(v.replace(/[^\d.-]/g, ""));
     else if (key === "expenseType") rec.expenseType = v || undefined;
     else if (key === "notes") rec.notes = unescapeField(v) || undefined;
     else if (key === "minutes") {
@@ -197,7 +197,7 @@ export function parseLegacyCards(text: string, date: string): Rec[] {
     const category = (t?.[2] || "日常").trim();
     const title = (rawTitle.replace(/^[\p{Extended_Pictographic}\uFE0F\s]+/u, "").trim() || "未命名").slice(0, 200);
     const fields: Record<string, string> = {};
-    for (const f of body.matchAll(/\[([^\[\]:]+)::\s*([^\]]*)\]/g)) fields[f[1].trim()] = f[2].trim();
+    for (const f of body.matchAll(/\[([^[\]:]+)::\s*([^\]]*)\]/g)) fields[f[1].trim()] = f[2].trim();
     const notesM = /class="journal-notes">([\s\S]*?)<\/div>/.exec(body);
     const rec: Rec = {
       date,
@@ -208,7 +208,7 @@ export function parseLegacyCards(text: string, date: string): Rec[] {
       extra: {},
     };
     if (fields["任务"]) rec.task = fields["任务"];
-    if (fields["金额"]) rec.amount = Number(fields["金额"].replace(/[^\d.\-]/g, ""));
+    if (fields["金额"]) rec.amount = Number(fields["金额"].replace(/[^\d.-]/g, ""));
     if (fields["类别"]) rec.expenseType = fields["类别"];
     if (notesM) rec.notes = notesM[1].replace(/<[^>]+>/g, "").trim().slice(0, 1000) || undefined;
     out.push(rec);

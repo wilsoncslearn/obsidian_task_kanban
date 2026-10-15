@@ -36,7 +36,7 @@ function normalize(el: Element): void {
   const oldLabel = el.getAttribute("data-lubi-label-id");
   if (oldLabel) document.getElementById(oldLabel)?.remove();
   const svg = el.namespaceURI === "http://www.w3.org/2000/svg";
-  const description = svg ? document.createElementNS(el.namespaceURI!, "desc") : document.createElement("span");
+  const description = svg ? document.createElementNS(el.namespaceURI, "desc") : document.createElement("span");
   description.id = `lubi-tooltip-label-${++labelId}`;
   description.textContent = label;
   if (!svg) description.classList.add("lubi-sr-only");

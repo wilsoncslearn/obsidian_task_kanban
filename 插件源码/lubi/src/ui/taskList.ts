@@ -8,7 +8,7 @@ import { Task, DoneLog, blankTask } from "../core/tasks";
 import { fmtDuration, hmToMin, minToHM, nowHM, todayStr, isValidDate } from "../core/time";
 import { planOccurrences } from "../core/planning";
 import { categoryOf } from "../settings";
-import { button, catDot, icon, iconButton, tip, undoNotice } from "./components";
+import { button, icon, iconButton, tip, undoNotice } from "./components";
 import { renderBackgroundAction, renderExecutionBadge } from "./execution";
 
 /** 打开「新建 · 已完成」记录框；onRec 在记录真正保存后回调（取消则不调用） */
