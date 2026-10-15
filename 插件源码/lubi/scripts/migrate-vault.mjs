@@ -2,8 +2,21 @@
 // 1) 日记 HTML 卡片 → `## 记录` Markdown 列表（整份备份到 备份/迁移-<时间>/日记/）
 // 2) 任务数据 v13 → v14（旧文件备份到 备份/迁移前-任务数据-v13-<时间>.json）
 import fs from "fs";
+import os from "os";
 import path from "path";
-import * as C from "./lubi-core.mjs";
+import { fileURLToPath, pathToFileURL } from "url";
+import { build } from "esbuild";
+
+// Build the pure core logic (the same bundle the core tests use) right before running, so the script never runs stale code.
+const pluginDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const bundleDir = fs.mkdtempSync(path.join(os.tmpdir(), "lubi-migrate-"));
+const bundle = path.join(bundleDir, "lubi-core.mjs");
+await build({
+  absWorkingDir: pluginDir, entryPoints: ["test/helpers/entry.ts"], bundle: true, platform: "node", format: "esm",
+  alias: { obsidian: "./test/helpers/stub-obsidian.js" }, outfile: bundle, logLevel: "warning",
+});
+const C = await import(pathToFileURL(bundle).href);
+fs.rmSync(bundleDir, { recursive: true, force: true });
 
 const root = process.cwd();
 const journalDir = path.join(root, "日记");
