@@ -2,10 +2,12 @@
 /日记/
 /未命名*.md
 /备份/
+/任务/任务数据.json
 /.claudian/
 /.snapshots/
 /.obsidian/workspace*.json
 /.obsidian/plugins/*/data.json
+/.obsidian/plugins/*/.hotreload
 /.obsidian/plugins/realclaudian/
 /Lubi-导出-*.csv
 /Lubi-导出-*.json

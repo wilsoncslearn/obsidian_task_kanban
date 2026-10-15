@@ -5,3 +5,7 @@ test/_shot_*.py
 test/plugin.cjs
 test/update-core.cjs
 test/core.mjs
+test/*.log
+test/product-plugin.cjs
+.codegraph/
+__pycache__/
