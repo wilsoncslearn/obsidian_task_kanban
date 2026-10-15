@@ -2,7 +2,7 @@
 
 ## 结构与数据
 
-- TypeScript 源码、测试、样式和版本文件在 `插件源码/lubi/`；不要手改编译输出。
+- TypeScript 源码、测试、样式和版本文件在 `插件源码/lubi/`；不要手改编译输出。源码分层：`src/core` 只放纯逻辑（lint 规则禁止引用 obsidian、Node 内置模块、services 和 ui），`src/services` 负责读写 Vault、网络、更新和钥匙串，`src/ui` 是界面。
 - 本仓库也是可直接打开的 Vault，已有 `.obsidian/plugins/lubi/{main.js,manifest.json,styles.css}` 分发文件被跟踪；从源码构建后同步，不与源码目录的忽略生成物混淆。
 - 日记是 Markdown，任务文件使用 schema v14；只改 `## 记录`，保留其他章节与未知字段。
 - 预计用时保存历史快照，不按任务现值回填旧记录，也不把预计重复累加到实际统计。自动按计划生成的记录保留待确认标记。
@@ -18,7 +18,7 @@
 
 ## 样式与测试
 
-- 样式直接修改原有规则，不在文件末尾追加覆盖规则；焦点与选中状态统一用 `--focus-*` 变量（边框加粗加深，不加外圈）。
+- 样式源码在 `src/styles/` 的分段文件里，构建时按文件名顺序拼接成 `styles.css`（生成文件，不要直接改，也不要调换分段顺序或把规则挪到别的分段）。直接修改原有规则，不在末尾追加覆盖规则；焦点与选中状态统一用 `--focus-*` 变量（边框加粗加深，不加外圈）。
 - 测试按类型放在 `test/core/`（纯逻辑）、`test/smoke/`（模拟 Obsidian 交互）、`test/layout/`（真实浏览器布局），公共代码放 `test/helpers/`；生成物与日志写到被忽略的 `test/.out/`。新增测试不用改 `package.json`。
 - 布局测试用 `test/helpers/page.mjs` 的 `writePage` 写页面，页面必须声明 UTF-8（中文 Windows 上的 Chrome 会把未声明编码的页面按 GBK 解析）；浏览器路径统一用 `test/helpers/browser.mjs`，可用 `LUBI_BROWSER` 指定。
 

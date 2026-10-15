@@ -8,19 +8,24 @@
 |---|---|
 | src/main.ts | 生命周期、命令、文件事件防抖、JSON 数据导出与设置加载 |
 | src/core/records.ts | Markdown 字段解析、预计快照、待确认、午夜拆分 |
-| src/core/journal.ts | 日记读取与原子更新、记录增删改、关联记录查询 |
-| src/core/tasks.ts | schema v14、任务层级 / 重复 / 排期 / 完成、写队列和迁移 |
+| src/services/journal.ts | 日记读取与原子更新、记录增删改、关联记录查询 |
+| src/core/tasks.ts | schema v14 任务模型：层级 / 重复 / 排期 / 完成判断与 v13 转换（纯逻辑） |
+| src/services/taskStore.ts | 任务文件读写、写队列、迁移备份与只读保护 |
 | src/core/nameHistory.ts / src/ui/nameSuggestions.ts | 历史名称去重与排序、共享搜索下拉及键盘选择 |
 | src/core/gantt.ts / src/ui/gantt.ts / src/ui/dailyGantt.ts | 自然周／月任务投影、重复日期段、层级与汇总范围、甘特日期交互 |
 | src/core/planning.ts / src/ui/planningViews.ts | 复用甘特日期段的日历 / 列表投影、月份格子、日期移动与未安排过滤 |
 | src/core/time.ts / metrics.ts | 日期与分钟工具、本人时间统计 |
 | src/core/execution.ts / src/ui/execution.ts | 执行主体、后台手动状态／墙钟、逐次重复审核、全日期队列及轻量时钟 |
 | src/ui/taskList.ts | 任务状态与记录独立；显式补记、旧关联兼容及删除／撤销保护 |
-| src/ui/modals.ts / aiTask.ts | 规划 / 支出表单、本人记录优先布局（关联上下文只读、计划字段默认折叠）、既有记录编辑、预计与实际对比、AI 草稿确认 |
+| src/ui/modals/ / aiTask.ts | 规划 / 支出表单、本人记录优先布局（关联上下文只读、计划字段默认折叠）、既有记录编辑、预计与实际对比、AI 草稿确认；`src/ui/modals.ts` 只做转导出 |
 | src/ui/taskActual.ts | 本人实际写入、可选完成、发生日与记录日分离、历史快照、多段保护及失败恢复 |
 | src/ui/calendarDay.ts / tasks.ts / review.ts / view.ts | 日历日内容、计划、回顾与顶栏 |
-| src/core/pluginUpdate.ts / pluginInstaller.ts / src/ui/pluginUpdateSettings.ts | 正式 Release 查询、附件验证、可选桌面安装与备份回滚、更新设置状态 |
-| styles.css | 局部 MONO 命名 Tokens、Obsidian 变量兼容及响应式布局，不覆盖外层应用主题 |
+| src/services/pluginUpdate.ts / pluginInstaller.ts / src/ui/pluginUpdateSettings.ts | 正式 Release 查询、附件验证、可选桌面安装与备份回滚、更新设置状态 |
+| src/services/migrate.ts / productService.ts | 旧版日记迁移；工作复盘与整理的读写 |
+| src/services/curl.ts / secrets.ts | AI 请求的 curl 兜底（校验证书）；AI Key 解析：临时 Key 优先，其次 Obsidian 钥匙串 |
+| src/styles/*.css → styles.css | 局部 MONO 命名 Tokens、Obsidian 变量兼容及响应式布局，不覆盖外层应用主题；构建时按文件名顺序逐字节拼接成 `styles.css`（生成文件，不入库），说明见 `src/styles/README.md` |
+
+分层：`src/core` 只放纯逻辑，lint 规则禁止它引用 `obsidian`、Node 内置模块、`src/services` 和 `src/ui`；读写 Vault、网络、更新和钥匙串放在 `src/services`；界面在 `src/ui`。
 
 ## 数据约定
 
@@ -90,7 +95,7 @@
 
 - manifest、package、package-lock 根版本一致；源码 versions.json 映射兼容版本。当前源码版本为 1.7.1；正式发布以 GitHub Release 及其附件为准，代码推送不会自动产生 Release。
 - 不提交日记、接口密钥、工作区状态、助手会话、导出与私有备份；只显式暂存确认过的文件，推送前核对远程、分支和暂存差异。
-- AI 为可选功能，只在用户动作下请求接口；当前 Key 明文保存在普通设置，curl 兜底跳过证书校验，仍待安全加固。
+- AI 为可选功能，只在用户动作下请求接口。Key 不写入 data.json：临时 Key 只在本次会话有效；也可保存在 Obsidian 钥匙串（SecretStorage，data.json 只记名称，每次请求时读取）。curl 兜底验证证书，远程接口仅接受 HTTPS。钥匙串的加密方式由 Obsidian 和系统决定，移动端未实测。
 - 跨午夜重编辑关联和合法 JSON 的结构校验仍有已知限制，见 CHANGELOG；不要把局部保护描述成完整的数据损坏恢复。
 
 ### 悬停提示实现
