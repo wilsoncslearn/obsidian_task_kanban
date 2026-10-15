@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { findBrowser } from "../helpers/browser.mjs";
 import { writePage } from "../helpers/page.mjs";
+import { DESIGN } from "../helpers/design.mjs";
 
 const project = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const browser = findBrowser();
@@ -347,7 +348,7 @@ if (!browser) {
       const mix = fg.slice(0, 3).map((v, i) => v * a + bg[i] * (1 - a));
       const L1 = lum(mix), L2 = lum(bg); const cr = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
       const key = el.className + cs.color;
-      if (cr < 4.5 && !seen.has(key)) { seen.add(key); out.lowContrast.push(cr.toFixed(2) + ' ' + (el.className || el.tagName) + ' "' + t.nodeValue.trim().slice(0, 12) + '"'); }
+      if (cr < LUBI_DESIGN.minContrast && !seen.has(key)) { seen.add(key); out.lowContrast.push(cr.toFixed(2) + ' ' + (el.className || el.tagName) + ' "' + t.nodeValue.trim().slice(0, 12) + '"'); }
     }
     out.heatCells = [...document.querySelectorAll(".lubi-heat .lubi-heat-cell:not(.is-out)")].map(el => ({ width:r(el).width, height:r(el).height }));
     // 合成摘要卡片验证共享样式：明暗主题、窄宽度、两行备注与文字对比。
@@ -360,7 +361,7 @@ if (!browser) {
     out.tipNotesClamped = r(notes).height <= parseFloat(notesStyle.lineHeight) * 2 + 1;
     out.tipContrast = Array.from(hint.children).every(el => {
       const fg = parse(getComputedStyle(el).color), bg = bgOf(hint), l1 = lum(fg), l2 = lum(bg);
-      return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05) >= 4.5;
+      return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05) >= LUBI_DESIGN.minContrast;
     });
     out.tipBackground = parse(getComputedStyle(hint).backgroundColor).slice(0,3);
     const tokenSample=document.createElement('span');tokenSample.style.backgroundColor='var(--color-canvas)';document.querySelector('.lubi-root, .lubi-modal, .lubi-settings').append(tokenSample);out.tokenCanvas=parse(getComputedStyle(tokenSample).backgroundColor).slice(0,3);tokenSample.remove();
@@ -461,7 +462,7 @@ if (!browser) {
             const expanded = run(theme, page, width, true);
             assert((page !== "review" || expanded.foldStates.length > 0) && expanded.foldStates.every(d => d.open && d.summaryVisible), `${theme} ${page}: folded content expands`);
             assert.deepEqual(expanded.lowContrast, [], `${theme} ${page} expanded ${width}px: text contrast below 4.5:1 ${expanded.lowContrast.join("; ")}`);
-            assert(expanded.minFont >= 11, `${theme} ${page} expanded: minimum font size`);
+            assert(expanded.minFont >= DESIGN.minFontPx, `${theme} ${page} expanded: minimum font size`);
           }
           if(page==='review') {
             assert(g.reviewHeader?.sameRow&&g.reviewHeader.gap>=0&&g.reviewHeader.gap<=16,theme+' '+width+'px: chart/table switch must stay next to its title '+JSON.stringify(g.reviewHeader));
@@ -481,7 +482,7 @@ if (!browser) {
           assert.deepEqual(g.shortHint.surface, g.tokenCanvas, `${theme}: compact hints must follow the theme`);
           assert(g.tipFits && g.tipNotesClamped && g.tipContrast, `${theme} ${page} ${width}px: tooltip geometry, two-line notes, or contrast failed ${JSON.stringify(g)}`);
           assert.deepEqual(g.tipBackground, g.tokenCanvas, `${theme}: tooltip should use the theme panel surface`);
-          assert(g.minFont >= 11, `${theme} ${page} ${width}px: text below 11px (${g.minFont}px at ${g.minAt})`);
+          assert(g.minFont >= DESIGN.minFontPx, `${theme} ${page} ${width}px: text below 11px (${g.minFont}px at ${g.minAt})`);
           assert.deepEqual(g.lowContrast, [], `${theme} ${page} ${width}px: text contrast below 4.5:1: ${g.lowContrast.join("; ")}`);
           if(g.weekSchedule){
             const w=g.weekSchedule;
@@ -512,7 +513,7 @@ if (!browser) {
     for(const theme of ["light","dark"]) for(const width of [1560,1000,760,390]) {
       const g=run(theme,"tasks-daily-gantt",width),d=g.dailyGantt;
       assert(d?.visible&&d.ticks===25&&d.first==="00:00"&&d.last==="24:00"&&d.firstHeader&&d.contained&&d.endpoints&&!d.overlap&&d.sticky&&(!d.needsScroll||d.scroll>0)&&d.overflow<=1&&d.untimedNoBar&&d.point&&d.completedPlain&&d.completedNoCheck&&g.ganttAppearance.center&&g.ganttAppearance.left&&g.ganttAppearance.categoryFill&&g.ganttAppearance.noLeftStripe,`${theme} ${width}px: daily time axis/rows/scrolling failed ${JSON.stringify(d)}`);
-      assert(g.primaryActions===1&&g.minFont>=11&&g.lowContrast.length===0,`${theme} ${width}px: daily Gantt readability/primary action failed ${JSON.stringify(g.lowContrast)}`);
+      assert(g.primaryActions===1&&g.minFont >= DESIGN.minFontPx&&g.lowContrast.length===0,`${theme} ${width}px: daily Gantt readability/primary action failed ${JSON.stringify(g.lowContrast)}`);
       console.log(`ok   Daily Gantt ${theme} ${width}px: first-row 00:00–24:00, aligned bars, sticky names, internal scrolling`);
     }
     for(const theme of ["light","dark"]) for(const width of [1560,390]) {
@@ -523,7 +524,7 @@ if (!browser) {
     for(const theme of ["light","dark"]) for(const width of [1560,1180,1000,760,390]) {
       const g=run(theme,"tasks-gantt",width),a=g.gantt;
       assert(a?.visible && a.days>=28&&a.days<=31 && a.rows>5 && a.overflow<=1 && (!a.needsScroll||a.scroll>0) && a.sticky<=1 && a.headerSticky && !a.nameOverflow && a.aligned && a.switches===1 && a.actualExcluded && a.childVisible && a.lineCount>0&&g.ganttAppearance.center&&g.ganttAppearance.left&&g.ganttAppearance.categoryFill&&g.ganttAppearance.noLeftStripe,`${theme} ${width}px: Gantt layout/sticky columns/data projection failed ${JSON.stringify(a)}`);
-      assert(g.primaryActions===1 && g.minFont>=11 && g.lowContrast.length===0,`${theme} ${width}px: Gantt has one main action and readable text ${JSON.stringify(g.lowContrast)}`);
+      assert(g.primaryActions===1 && g.minFont >= DESIGN.minFontPx && g.lowContrast.length===0,`${theme} ${width}px: Gantt has one main action and readable text ${JSON.stringify(g.lowContrast)}`);
       const collapsed=run(theme,"tasks-gantt-collapsed",width).gantt;
       assert(collapsed.visible&&!collapsed.childVisible&&collapsed.rows<a.rows,`${theme} ${width}px: collapsed children still visible`);
       console.log(`ok   Gantt ${theme} ${width}px: natural month, sticky names/header, internal scrolling, no page overflow, expandable hierarchy`);
@@ -537,17 +538,17 @@ if (!browser) {
       const g=run(theme, `names-${kind}`, width);
       const n=g.nameList;
       assert(n && !n.hidden && n.count>=8 && n.height===180 && n.rows.every(h=>Math.abs(h-36)<.5) && n.firstVisible===5 && n.scroll>0 && n.lastVisible && n.widthAligned && n.belowInput && n.viewportFits && n.overflow==="auto", `${theme} ${kind} ${width}px: five-row internal scrolling history list ${JSON.stringify(n)}`);
-      assert(g.minFont>=11 && g.lowContrast.length===0, `${theme} ${kind}: readable history candidates`);
+      assert(g.minFont >= DESIGN.minFontPx && g.lowContrast.length===0, `${theme} ${kind}: readable history candidates`);
       console.log(`ok   history list ${theme} ${kind} ${width}px: five visible rows, internal scrolling, aligned and unclipped`);
     }
     for(const theme of ['light','dark']) for(const width of [1000,600,390]) {
       const g=run(theme,'modal-actual',width),a=g.unifiedActual;
       assert(a&&a.modes.join('|')==='seg:todo|seg:money'&&a.duration==='60'&&a.comparison.includes('预计 45min · 实际 1h · 超出 15min')&&a.inputsFit&&a.overflow<=1,theme+' '+width+'px: unified actual form layout '+JSON.stringify(a));
-      assert(g.minFont>=11&&g.lowContrast.length===0,theme+' '+width+'px: unified actual form readability');
+      assert(g.minFont >= DESIGN.minFontPx&&g.lowContrast.length===0,theme+' '+width+'px: unified actual form readability');
       console.log('ok   unified actual form '+theme+' '+width+'px: two modes, actual/estimate comparison, visible controls');
     }
     for(const theme of ['light','dark'])for(const width of [1000,600,390,320]) {
-      const g=run(theme,'modal-json-import',width),m=g.jsonModal;assert(m&&m.textVisible&&m.inside&&m.overflow<=1&&m.buttons.length===2&&m.buttons.every(b=>b.visible),theme+' '+width+'px: JSON paste/import modal is usable '+JSON.stringify(m));assert(g.minFont>=11&&g.lowContrast.length===0,'JSON import text is readable');console.log('PASS JSON import modal: '+theme+' '+width+'px');
+      const g=run(theme,'modal-json-import',width),m=g.jsonModal;assert(m&&m.textVisible&&m.inside&&m.overflow<=1&&m.buttons.length===2&&m.buttons.every(b=>b.visible),theme+' '+width+'px: JSON paste/import modal is usable '+JSON.stringify(m));assert(g.minFont >= DESIGN.minFontPx&&g.lowContrast.length===0,'JSON import text is readable');console.log('PASS JSON import modal: '+theme+' '+width+'px');
     }
     for(const theme of ['light','dark'])for(const width of [1000,600,390,320])for(const page of ['modal-new-actual-only','modal-new-planned']) {
       const g=run(theme,page,width),d=g.newTaskDetails;
@@ -557,19 +558,19 @@ if (!browser) {
       assert.deepEqual(order.plan,['计划开始日期','计划开始时间','预计用时'],theme+' '+width+'px: planning order');
       assert.deepEqual(order.actual,['实际开始日期','实际开始时间','实际用时'],theme+' '+width+'px: actual order');
       assert(order.planPair&&order.actualPair&&order.actualBelow,theme+' '+width+'px: date/time pairs and duration below');
-      assert(g.unifiedActual.inputsFit&&g.unifiedActual.overflow<=1&&g.minFont>=11&&g.lowContrast.length===0,theme+' '+width+'px '+page+': shared new-task modal stays readable');
+      assert(g.unifiedActual.inputsFit&&g.unifiedActual.overflow<=1&&g.minFont >= DESIGN.minFontPx&&g.lowContrast.length===0,theme+' '+width+'px '+page+': shared new-task modal stays readable');
       console.log('PASS shared new-task modal: '+theme+' '+width+'px '+page);
     }
     for(const theme of ['light','dark'])for(const width of [1000,600,390,320]) {
       const g=run(theme,'modal-project',width),p=g.projectForm;
       assert(p&&p.fit&&!p.overlap&&p.named&&p.value&&p.overflow<=1,theme+' '+width+'px: project picker and inline creation fit '+JSON.stringify(p));
-      assert(g.minFont>=11&&g.lowContrast.length===0,theme+' '+width+'px: project form readable');
+      assert(g.minFont >= DESIGN.minFontPx&&g.lowContrast.length===0,theme+' '+width+'px: project form readable');
       console.log('PASS project form: '+theme+' '+width+'px, selected project, inline create, labels and no clipping');
     }
     for(const theme of ['light','dark']) for(const width of [1400,390]) {
       const g=run(theme,'today-empty',width),d=g.emptyDonut;
       assert(d?.width===120&&d.height===120&&d.contained&&d.center==='0h'&&d.sub==='覆盖 0%'&&d.circles===1&&d.slices===0&&d.baseVisible&&d.cardOverflow<=1,theme+' '+width+'px: empty distribution ring missing, clipped or filled with fake slices '+JSON.stringify(d));
-      assert(g.minFont>=11&&g.lowContrast.length===0&&g.simplifyErrors.length===0,theme+' '+width+'px: empty donut readability and sidebar structure');
+      assert(g.minFont >= DESIGN.minFontPx&&g.lowContrast.length===0&&g.simplifyErrors.length===0,theme+' '+width+'px: empty donut readability and sidebar structure');
       console.log('ok   empty donut '+theme+' '+width+'px: neutral ring, zero center, no slices or clipping');
     }
     for(const theme of ['light','dark']) for(const width of [1400,390]) for(const [period,count] of [['week',7],['month',29],['year',12]]) {
@@ -577,7 +578,7 @@ if (!browser) {
       assert(e?.metrics&&e.details&&e.chartHeight>=180&&e.gridHeight>=180&&e.buckets===count&&e.zeroBars&&!e.invalid&&e.bodyOverflow<=1,theme+' '+period+' '+width+'px: empty review chart and structure '+JSON.stringify(e));
       assert(g.reviewHeader?.sameRow&&g.reviewHeader.gap>=0&&g.reviewHeader.gap<=16,theme+' '+period+' '+width+'px: empty chart controls shifted away from their title '+JSON.stringify(g.reviewHeader));
       assert(g.reviewBarStates.zero?.height<=.5&&!g.reviewBarStates.zero.outline&&g.reviewBarStates.zero.badge,'empty today keeps its date badge without drawing a zero-height bar outline');
-      assert(g.minFont>=11&&g.lowContrast.length===0&&g.barOverflow<=1,theme+' '+period+' '+width+'px: empty review readability or overflow');
+      assert(g.minFont >= DESIGN.minFontPx&&g.lowContrast.length===0&&g.barOverflow<=1,theme+' '+period+' '+width+'px: empty review readability or overflow');
       if(period==='year')assert(g.heatCells.length===366&&g.heatCells.every(cell=>cell.width>0&&Math.abs(cell.width-cell.height)<=.75),'empty leap year heatmap remains visible and square');
       console.log('ok   empty review '+theme+' '+period+' '+width+'px: zero buckets, visible chart, details, no overflow');
     }

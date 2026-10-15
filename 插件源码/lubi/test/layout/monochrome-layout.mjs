@@ -8,6 +8,7 @@ import {dirname,join,relative,isAbsolute,basename} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import { findBrowser } from "../helpers/browser.mjs";
 import { writePage } from "../helpers/page.mjs";
+import { DESIGN } from "../helpers/design.mjs";
 const project=dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const browser = findBrowser();
 if(!browser){if(process.env.LUBI_REQUIRE_BROWSER==='1')throw Error('Native browser required for MONO');console.log('SKIP MONO: browser unavailable');}
@@ -36,7 +37,7 @@ else{
    const metrics=JSON.parse(decodeURIComponent(found[1])),label=`${theme} ${width}px ${name}`;
    assert.equal(metrics.viewport,width,label+' must test the real requested pane width');assert(metrics.overflow<=1,label+' overflow: '+JSON.stringify(metrics));assert.equal(metrics.canvas,theme==='dark'?'#111111':'#ffffff');assert.equal(metrics.ink,theme==='dark'?'#f4f4f4':'#111111');assert.equal(metrics.nonGray.length,0,label+' non-grayscale component: '+JSON.stringify(metrics.nonGray));assert(metrics.outsideAccent!==`rgb(${theme==='dark'?'244, 244, 244':'17, 17, 17'})`,label+' cannot overwrite the outer application accent');assert(metrics.buttonsNamed&&metrics.recordText,label+' named controls: '+JSON.stringify(metrics));
    if(name==='modal-async')assert(metrics.modal.context&&metrics.modal.folded&&metrics.modal.defaultIncomplete&&metrics.modal.saveText.includes('保存用时')&&metrics.modal.saveReachable&&metrics.modal.inputsContained,label+' explicit reachable time entry: '+JSON.stringify(metrics));
-   else {assert(metrics.overview===4&&metrics.priority&&metrics.sidebar,label+' approved hierarchy: '+JSON.stringify(metrics));assert(metrics.personalEntries.every(e=>e.height>=44&&e.inside),label+' human time entries do not clip/overlap: '+JSON.stringify(metrics.personalEntries));}
+   else {assert(metrics.overview===4&&metrics.priority&&metrics.sidebar,label+' approved hierarchy: '+JSON.stringify(metrics));assert(metrics.personalEntries.every(e=>e.height>=DESIGN.touchTargetPx&&e.inside),label+' human time entries do not clip/overlap: '+JSON.stringify(metrics.personalEntries));}
    console.log('PASS MONO native: '+label+', grayscale/scoped/contained/explicit');
   }
  }finally{const owner=realpathSync(tmpdir()),target=realpathSync(temporary),child=relative(owner,target);assert(child&&!child.startsWith('..')&&!isAbsolute(child)&&dirname(child)==='.'&&basename(child).startsWith('lubi-mono-layout-'));rmSync(target,{recursive:true,force:true});}

@@ -7,6 +7,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { findBrowser } from "../helpers/browser.mjs";
 import { writePage } from "../helpers/page.mjs";
+import { DESIGN } from "../helpers/design.mjs";
 const project = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const browser = findBrowser();
 if (!browser) {
@@ -26,12 +27,12 @@ if (!browser) {
     updateStatus.textContent+=' 旧文件备份：/synthetic-temporary-directory/'+ 'unbroken-synthetic-backup-name'.repeat(15);
     const prompt=root.querySelector('.lubi-json-prompt'),copy=[...root.querySelectorAll('.lubi-settings-json-import button')].find(button=>button.textContent==='复制系统提示词');
     const promptRect=prompt.getBoundingClientRect(),rootRect=root.getBoundingClientRect();
-    const out = { update:{button:!!updateButton&&updateButton.getBoundingClientRect().width>0, install:!!installButton&&installButton.getBoundingClientRect().width>0&&installButton.getBoundingClientRect().right<=rootRect.right+1, statusInside:updateStatus.getBoundingClientRect().right<=rootRect.right+1, linkInside:updateLink.getBoundingClientRect().right<=rootRect.right+1, live:updateStatus.getAttribute("aria-live")==="polite"}, prompt:{readOnly:prompt.readOnly,visible:promptRect.width>0&&promptRect.height>=180,inside:promptRect.left>=rootRect.left&&promptRect.right<=rootRect.right,hasFormat:prompt.value.includes('tasks')&&prompt.value.includes('subtasks'),copy:!!copy&&copy.getBoundingClientRect().width>0}, overflow: root.scrollWidth - root.clientWidth, bodyOverflow: document.body.scrollWidth - innerWidth, aiOpen:ai.open, modelInputs:root.querySelectorAll('[data-setting=ai-model]').length, aiDropdowns:ai.querySelectorAll('select').length, labels:[], minFont:99, contrast:[], effects:[] };
+    const out = { update:{button:!!updateButton&&updateButton.getBoundingClientRect().width>0, install:!!installButton&&installButton.getBoundingClientRect().width>0&&installButton.getBoundingClientRect().right<=rootRect.right+1, statusInside:updateStatus.getBoundingClientRect().right<=rootRect.right+1, linkInside:updateLink.getBoundingClientRect().right<=rootRect.right+1, live:updateStatus.getAttribute("aria-live")==="polite"}, prompt:{readOnly:prompt.readOnly,visible:promptRect.width>0&&promptRect.height>=180,inside:promptRect.left>=rootRect.left&&promptRect.right<=rootRect.right,hasFormat:prompt.value.includes('tasks')&&prompt.value.includes('subtasks'),copy:!!copy&&copy.getBoundingClientRect().width>0}, overflow: root.scrollWidth - root.clientWidth, bodyOverflow: document.body.scrollWidth - innerWidth, aiOpen:ai.open, modelInputs:root.querySelectorAll('[data-setting=ai-model]').length, aiDropdowns:[...ai.querySelectorAll('select')].filter(el=>!el.closest('[data-setting=ai-keychain]')).length, labels:[], minFont:99, contrast:[], effects:[] };
     const rect = el => el.getBoundingClientRect();
     for (const group of root.querySelectorAll('.lubi-category-controls')) {
       const cells = [...group.children].map(rect);
       const header = root.querySelector('.lubi-category-header'), compact = rect(header).height > 0;
-      if (compact && rect(group.closest('.lubi-category-row')).height > 52) out.labels.push('desktop category row is not compact');
+      if (compact && rect(group.closest('.lubi-category-row')).height > LUBI_DESIGN.compactSettingRowPx) out.labels.push('desktop category row is not compact');
       if (compact && Math.max(...cells.map(box=>box.top))-Math.min(...cells.map(box=>box.top))>6) out.labels.push('desktop category controls do not share a row');
       if (compact && [...group.querySelectorAll('.lubi-settings-field-label')].some(label=>rect(label).height>0)) out.labels.push('desktop category captions repeat the header');
       for (const field of group.querySelectorAll('.lubi-settings-field')) {
@@ -65,7 +66,7 @@ if (!browser) {
       const style=getComputedStyle(el),box=rect(el);if(!box.width||!box.height||style.display==='none'||style.visibility==='hidden'||el.closest('[hidden]'))continue;
       out.minFont=Math.min(out.minFont,parseFloat(style.fontSize));
       const a=luminance(parse(style.color)),b=luminance(background(el)),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
-      if(ratio<4.5)out.contrast.push(ratio.toFixed(2)+' '+el.className+' '+node.nodeValue.trim().slice(0,20));
+      if(ratio<LUBI_DESIGN.minContrast)out.contrast.push(ratio.toFixed(2)+' '+el.className+' '+node.nodeValue.trim().slice(0,20));
     }
     for(const el of root.querySelectorAll('*')) if(getComputedStyle(el).backgroundImage.includes('gradient')||(getComputedStyle(el).backdropFilter&&getComputedStyle(el).backdropFilter!=='none'))out.effects.push(el.className);
     document.getElementById('settings-result').textContent='SETTINGS_LAYOUT:'+encodeURIComponent(JSON.stringify(out));
@@ -86,7 +87,7 @@ if (!browser) {
       assert(out.prompt.readOnly&&out.prompt.visible&&out.prompt.inside&&out.prompt.hasFormat&&out.prompt.copy,"copyable JSON prompt fits settings");
       assert(out.overflow<=1 && out.bodyOverflow<=1,theme+' '+width+': horizontal overflow '+JSON.stringify(out));
       assert.equal(out.aiOpen,expanded,'AI default/expanded state');assert.equal(out.modelInputs,1,'single model input');assert.equal(out.aiDropdowns,0,'no duplicate model selector');
-      assert.deepEqual(out.labels,[],theme+' '+width+': controls overlap or too narrow');assert(out.minFont>=11,'settings font below 11px');assert.deepEqual(out.contrast,[],theme+' '+width+': insufficient contrast '+out.contrast.join('; '));assert.deepEqual(out.effects,[],'settings has decorative effects');
+      assert.deepEqual(out.labels,[],theme+' '+width+': controls overlap or too narrow');assert(out.minFont>=DESIGN.minFontPx,'settings font below 11px');assert.deepEqual(out.contrast,[],theme+' '+width+': insufficient contrast '+out.contrast.join('; '));assert.deepEqual(out.effects,[],'settings has decorative effects');
       console.log('ok   settings '+theme+' '+width+'px '+(expanded?'AI expanded':'AI folded')+': labels, controls, contrast and width');
     }
   } finally {try{rmSync(temp,{recursive:true,force:true});}catch{ /* Temporary Chrome profile may be briefly held on Windows. */ }}

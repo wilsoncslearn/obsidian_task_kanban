@@ -7,6 +7,7 @@ import {dirname,join,relative,isAbsolute,basename} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import { findBrowser } from "../helpers/browser.mjs";
 import { writePage } from "../helpers/page.mjs";
+import { DESIGN } from "../helpers/design.mjs";
 const project=dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const browser = findBrowser();
 if(!browser){if(process.env.LUBI_REQUIRE_BROWSER==='1')throw new Error('Native browser required for themed models');console.log('SKIP model list native layout');}
@@ -31,7 +32,7 @@ else {
    assert.equal(run.status,0,run.error||run.stderr?.slice(-500));const found=[...run.stdout.matchAll(/MODEL_LAYOUT:(%7B[^<\s]+)/g)].at(-1);assert(found,'missing model-list metrics');const g=JSON.parse(decodeURIComponent(found[1])),label=theme+' '+width+'px '+state;
    assert.equal(g.width,width,label+' exact viewport');assert.equal(g.count,state==='all'?36:2,label+' full vs typed filtered list');assert(!g.hidden&&g.expanded==='true'&&!g.native,label+' themed expanded combobox');
    assert(g.bodyOverflow<=1&&g.rootOverflow<=1&&g.allRows&&Math.abs(g.picker.width-g.list.width)<=1&&g.input.right<=g.toggle.left+1&&g.list.top>=g.input.bottom,label+' list/input geometry '+JSON.stringify(g));
-   assert(g.lastVisible&&(state!=='all'||(g.scroll&&g.list.height<=182)),label+' all models reachable by internal scrolling');assert.equal(g.background,g.panelColor,label+' theme background');assert.equal(g.textColor,g.normalColor,label+' theme text');assert(g.contrast>=4.5&&g.font>=11&&g.radius>0&&g.border>0,label+' readable theme surface');assert.equal(g.model,state==='all'?'deepseek-flash':'deepseek',label+' current input preserved');
+   assert(g.lastVisible&&(state!=='all'||(g.scroll&&g.list.height<=182)),label+' all models reachable by internal scrolling');assert.equal(g.background,g.panelColor,label+' theme background');assert.equal(g.textColor,g.normalColor,label+' theme text');assert(g.contrast>=DESIGN.minContrast&&g.font>=DESIGN.minFontPx&&g.radius>0&&g.border>0,label+' readable theme surface');assert.equal(g.model,state==='all'?'deepseek-flash':'deepseek',label+' current input preserved');
    console.log('PASS model list native layout: '+label+', complete/filtered models, theme colors, internal scroll, and no overflow');
   }
  } finally {const owner=realpathSync(tmpdir()),target=realpathSync(tmp),child=relative(owner,target);assert(child&&!child.startsWith('..')&&!isAbsolute(child)&&dirname(child)==='.'&&basename(child).startsWith('lubi-model-layout-'),'cleanup stays in owned temp directory');rmSync(target,{recursive:true,force:true});}

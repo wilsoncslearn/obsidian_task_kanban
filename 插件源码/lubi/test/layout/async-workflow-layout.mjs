@@ -7,6 +7,7 @@ import { dirname, join, relative, isAbsolute, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findBrowser } from "../helpers/browser.mjs";
 import { writePage } from "../helpers/page.mjs";
+import { DESIGN } from "../helpers/design.mjs";
 const project = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const browser = findBrowser();
 if (!browser) {
@@ -39,7 +40,7 @@ if (!browser) {
       if (name === 'async-workflow') {
         assert(metrics.first && metrics.count === 1 && metrics.running && metrics.named, label + ' global attention/running queues');
         assert(metrics.buttons.length === 4, label + ' acceptance, rework, recording and follow-up');
-        assert(metrics.buttons.every(({ box }) => box.left >= metrics.queue.left - .5 && box.right <= metrics.queue.right + .5 && box.height >= 32), label + ' reachable, wrapped review actions: ' + JSON.stringify(metrics));
+        assert(metrics.buttons.every(({ box }) => box.left >= metrics.queue.left - .5 && box.right <= metrics.queue.right + .5 && box.height >= DESIGN.actionHeightPx), label + ' reachable, wrapped review actions: ' + JSON.stringify(metrics));
         assert(metrics.titles.every(box => box.right <= metrics.queue.right + .5), label + ' long task titles stay contained');
       } else assert(metrics.inputs && metrics.saveReachable && metrics.completeVisible && metrics.actor === 'background' && metrics.saveText.includes('保存用时'), label + ' explicit record/complete actions and accessible form: ' + JSON.stringify(metrics));
       console.log('PASS async native layout: ' + label);
