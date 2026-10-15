@@ -1,9 +1,9 @@
 import { TFile, normalizePath } from 'obsidian';
 import type LubiPlugin from '../main';
-import { blankTask, Task } from './tasks';
-import { Rec, serializeRecord } from './records';
-import { backlog, parseRestore, pauseTimer, TimerSession, timerRecords } from './productivity';
-import { shiftDate, stamp, todayStr, uid, weekStart, isValidDate } from './time';
+import { blankTask, Task } from '../core/tasks';
+import { Rec, serializeRecord } from '../core/records';
+import { backlog, parseRestore, pauseTimer, TimerSession, timerRecords } from '../core/productivity';
+import { shiftDate, stamp, todayStr, uid, weekStart, isValidDate } from '../core/time';
 
 export class ProductService {
   private busy = false;

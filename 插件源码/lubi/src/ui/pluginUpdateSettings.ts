@@ -1,6 +1,6 @@
 import { App, PluginManifest, Setting } from "obsidian";
-import { checkPluginUpdate, compareVersions, RELEASES_URL, UpdateResult } from "../core/pluginUpdate";
-import { canInstallPluginUpdate, installPluginUpdate } from "../core/pluginInstaller";
+import { checkPluginUpdate, compareVersions, RELEASES_URL, UpdateResult } from "../services/pluginUpdate";
+import { canInstallPluginUpdate, installPluginUpdate } from "../services/pluginInstaller";
 import { ConfirmModal } from "./modals";
 
 export type PluginUpdateState = { busy: boolean; confirming: boolean; status: string; release?: UpdateResult; installedVersion?: string; refresh?: () => void };

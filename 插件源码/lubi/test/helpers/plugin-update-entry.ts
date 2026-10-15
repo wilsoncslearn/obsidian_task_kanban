@@ -1,2 +1,2 @@
-export { checkPluginUpdate, compareVersions, releaseAssets } from "../../src/core/pluginUpdate";
-export { installPluginUpdate } from "../../src/core/pluginInstaller";
+export { checkPluginUpdate, compareVersions, releaseAssets } from "../../src/services/pluginUpdate";
+export { installPluginUpdate } from "../../src/services/pluginInstaller";

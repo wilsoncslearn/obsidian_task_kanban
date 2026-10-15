@@ -2,8 +2,8 @@
 
 import { App, TFile, TFolder, normalizePath } from "obsidian";
 import { LubiSettings } from "../settings";
-import { Rec, ParsedLine, parseRecordLine, serializeRecord, splitAtMidnight, sortRecs } from "./records";
-import { hmToMin, isValidDate, shiftDate } from "./time";
+import { Rec, ParsedLine, parseRecordLine, serializeRecord, splitAtMidnight, sortRecs } from "../core/records";
+import { hmToMin, isValidDate, shiftDate } from "../core/time";
 
 export const SECTION = "## 记录";
 

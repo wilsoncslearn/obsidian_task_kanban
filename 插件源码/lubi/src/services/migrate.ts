@@ -3,9 +3,9 @@
 
 import { App, TFile, normalizePath } from "obsidian";
 import { LubiSettings } from "../settings";
-import { hasLegacyCards, parseLegacyCards } from "./records";
+import { hasLegacyCards, parseLegacyCards } from "../core/records";
 import { writeSection, parseLines } from "./journal";
-import { stamp } from "./time";
+import { stamp } from "../core/time";
 
 export interface MigrationReport {
   files: number;
@@ -50,7 +50,7 @@ export async function migrateJournals(app: App, settings: LubiSettings): Promise
 }
 
 /** 纯函数：去掉旧卡片、任务日志块、内嵌 dataviewjs，写入新记录节 */
-export function convertText(text: string, date: string, recs: import("./records").Rec[]): string {
+export function convertText(text: string, date: string, recs: import("../core/records").Rec[]): string {
   let t = text.replace(/\r\n/g, "\n");
   // 1. 删除 HTML 卡片行
   // 顺序很重要：先删代码块（里面有同名字符串），再删单行卡片

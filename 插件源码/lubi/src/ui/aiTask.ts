@@ -4,7 +4,7 @@ import { Task } from "../core/tasks";
 import { todayStr } from "../core/time";
 import { button, icon } from "./components";
 import { TaskModal } from "./modals";
-import { curlJson, validateAiUrl } from "../core/curl";
+import { curlJson, validateAiUrl } from "../services/curl";
 
 type AiSubtask = Partial<Pick<Task, "title" | "date" | "start" | "estimate" | "location">>;
 type AiDraft = Partial<Pick<Task, "title" | "category" | "date" | "start" | "estimate" | "startDate" | "endDate" | "location">> & {

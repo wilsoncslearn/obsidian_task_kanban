@@ -3,7 +3,7 @@ import type LubiPlugin from "../main";
 import { CategoryDef, DEFAULT_CATEGORIES } from "../settings";
 import { accentConflicts, parseColor, resolveDefault, RGB } from "../core/color";
 import { ConfirmModal } from "./modals";
-import { curlJson, validateAiUrl } from "../core/curl";
+import { curlJson, validateAiUrl } from "../services/curl";
 import { iconButton, tip } from "./components";
 import { taskImportPrompt } from "../core/taskImport";
 import { modelPicker } from "./modelPicker";

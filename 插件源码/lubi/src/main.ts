@@ -1,8 +1,8 @@
 import { Notice, Plugin, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
 import { DEFAULT_SETTINGS, LubiSettings, DEFAULT_CATEGORIES, migratePalette } from "./settings";
-import { Journal } from "./core/journal";
-import { Tasks } from "./core/tasks";
-import { detectLegacyJournals, migrateJournals } from "./core/migrate";
+import { Journal } from "./services/journal";
+import { Tasks } from "./services/taskStore";
+import { detectLegacyJournals, migrateJournals } from "./services/migrate";
 import { shiftDate, todayStr, minToHM, hmToMin, stamp, uid } from "./core/time";
 import { DashboardView, VIEW_TYPE, Tab } from "./ui/view";
 import { hideTip } from "./ui/components";
@@ -12,7 +12,7 @@ import { LubiSettingTab } from "./ui/settingsTab";
 import { Rec } from "./core/records";
 import { historyNames, validNameUses } from "./core/nameHistory";
 
-import { ProductService } from "./core/productService";
+import { ProductService } from "./services/productService";
 import { ProductivityModal, ProductTab } from "./ui/productivity";
 
 export default class LubiPlugin extends Plugin {
