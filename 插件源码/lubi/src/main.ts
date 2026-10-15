@@ -274,8 +274,14 @@ export default class LubiPlugin extends Plugin {
   // ---------- 迁移 ----------
 
   async runMigration(explicit: boolean): Promise<void> {
+    // Startup skips the full journal scan once a scan found nothing; the command always scans.
+    if (!explicit && this.settings.legacyScanDone) return;
     const legacy = await detectLegacyJournals(this.app, this.settings);
     if (!legacy.length) {
+      if (!this.settings.legacyScanDone) {
+        this.settings.legacyScanDone = true;
+        await this.persistSettings();
+      }
       if (explicit) new Notice("没有需要迁移的日记文件。");
       return;
     }

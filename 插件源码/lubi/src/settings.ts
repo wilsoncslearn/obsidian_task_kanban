@@ -33,6 +33,10 @@ export interface LubiSettings {
   aiEndpoint: string;
   aiModel: string;
   aiApiKey: string;
+  /** Name of the AI key in Obsidian's keychain (SecretStorage). Only the name is saved; the key stays in the keychain. */
+  aiKeySecret: string;
+  /** Set once a startup scan finds no legacy journal cards; later startups skip the scan. */
+  legacyScanDone: boolean;
 }
 
 // v1.4 色板：分类色只给数据用，避开 Obsidian 默认强调色（紫）；睡眠为「背景时间」用石板灰蓝 + 斜纹降权。
@@ -86,6 +90,8 @@ export const DEFAULT_SETTINGS: LubiSettings = {
   aiEndpoint: "http://127.0.0.1:11434/v1/chat/completions",
   aiModel: "qwen2.5:7b",
   aiApiKey: "",
+  aiKeySecret: "",
+  legacyScanDone: false,
 };
 
 export function categoryOf(settings: LubiSettings, name: string): CategoryDef {

@@ -91,7 +91,29 @@ class Workspace {
   getLeaf() { const l = { app: this.app, type: null, view: null, setViewState: async (s) => { l.type = s.type; l.view = this._factory(l); await l.view.onOpen(); }, openFile: async () => {} }; this.leaves.push(l); return l; }
   revealLeaf() {}
 }
-export class App { constructor() { this.vault = new Vault(); this.workspace = new Workspace(this); } }
+export class App { constructor() { this.vault = new Vault(); this.workspace = new Workspace(this); this.secretStorage = new SecretStorage(); } }
+
+// Obsidian 1.11.4+ keychain: secrets are stored by a lowercase id; settings keep only the id.
+export class SecretStorage {
+  constructor() { this.secrets = new Map(); }
+  setSecret(id, secret) { if (!/^[a-z0-9-]+$/.test(id)) throw new Error("invalid secret id"); this.secrets.set(id, secret); }
+  getSecret(id) { return this.secrets.has(id) ? this.secrets.get(id) : null; }
+  listSecrets() { return [...this.secrets.keys()]; }
+}
+export class SecretComponent {
+  constructor(app, containerEl) {
+    this.selectEl = containerEl.createEl("select", { cls: "dropdown lubi-mock-secret" });
+    this.selectEl.createEl("option", { value: "", text: "选择密钥…" });
+    for (const id of app.secretStorage?.listSecrets() ?? []) this.selectEl.createEl("option", { value: id, text: id });
+    this.selectEl.addEventListener("change", () => this.changed?.(this.selectEl.value || null));
+  }
+  setValue(value) {
+    if (value && ![...this.selectEl.options].some((o) => o.value === value)) this.selectEl.createEl("option", { value, text: value });
+    this.selectEl.value = value;
+    return this;
+  }
+  onChange(cb) { this.changed = cb; return this; }
+}
 export class Plugin {
   constructor(app, manifest) { this.app = app; this.manifest = manifest; this._data = null; this.commands = []; this._views = {}; this.settingTabs = []; }
   async loadData() { return this._data; }

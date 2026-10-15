@@ -5,6 +5,7 @@ import { todayStr } from "../core/time";
 import { button, icon } from "./components";
 import { TaskModal } from "./modals";
 import { curlJson, validateAiUrl } from "../services/curl";
+import { aiKey } from "../services/secrets";
 
 type AiSubtask = Partial<Pick<Task, "title" | "date" | "start" | "estimate" | "location">>;
 type AiDraft = Partial<Pick<Task, "title" | "category" | "date" | "start" | "estimate" | "startDate" | "endDate" | "location">> & {
@@ -91,12 +92,13 @@ export class AiTaskModal extends Modal {
       const categories = s.categories.filter((c) => c.kind === "time").map((c) => c.name);
       const system = `你是 Lubi 的任务解析器。当前日期是 ${todayStr()}。只返回 JSON，不要 Markdown，不要解释。字段必须是：title（字符串）、location（可选地点字符串，最多 200 字符）、category（从 ${JSON.stringify(categories)} 中选一个）、date（YYYY-MM-DD 或空字符串）、start（HH:MM 或空字符串）、estimate（分钟数字或 0）、startDate（YYYY-MM-DD 或空字符串）、endDate（YYYY-MM-DD 或空字符串）、confidence（high/medium/low）、explanation（简短中文）、subtasks（子任务数组，每项包含 title、date、start、estimate、location；没有子任务时返回空数组）。用户明确说有多个步骤时，拆成 subtasks 供逐项确认；应用将其保存为独立任务，可继承所选项目，不创建父子关系。只在用户明确提供时填写日期、时间、时长、截止日期和地点；地点未提及时留空，不猜测、不从主任务继承到后续任务；子任务未明确的日期和分类由应用继承父任务，未明确的时长留空或 0。`;
       const body = JSON.stringify({ model: s.aiModel, temperature: 0.1, messages: [{ role: "system", content: system }, { role: "user", content: prompt }] });
+      const key = aiKey(this.plugin.app, s);
       let response: { status: number; json: unknown };
       try {
-        const native = await requestUrl({ url: chatEndpoint(s.aiEndpoint), method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", ...(s.aiApiKey ? { Authorization: `Bearer ${s.aiApiKey}` } : {}) }, body, throw: false });
+        const native = await requestUrl({ url: chatEndpoint(s.aiEndpoint), method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", ...(key ? { Authorization: `Bearer ${key}` } : {}) }, body, throw: false });
         response = { status: native.status, json: native.json };
       } catch {
-        response = await curlJson(chatEndpoint(s.aiEndpoint), { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", ...(s.aiApiKey ? { Authorization: `Bearer ${s.aiApiKey}` } : {}) }, body });
+        response = await curlJson(chatEndpoint(s.aiEndpoint), { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", ...(key ? { Authorization: `Bearer ${key}` } : {}) }, body });
       }
       if (response.status < 200 || response.status >= 300) throw new Error(`AI 请求失败（${response.status}）`);
       const data = response.json as { choices?: { message?: { content?: string } }[] };

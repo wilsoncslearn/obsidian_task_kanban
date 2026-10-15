@@ -1,9 +1,10 @@
-import { App, Notice, PluginSettingTab, requestUrl, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, requestUrl, SecretComponent, Setting } from "obsidian";
 import type LubiPlugin from "../main";
 import { CategoryDef, DEFAULT_CATEGORIES } from "../settings";
 import { accentConflicts, parseColor, resolveDefault, RGB } from "../core/color";
 import { ConfirmModal } from "./modals";
 import { curlJson, validateAiUrl } from "../services/curl";
+import { aiKey } from "../services/secrets";
 import { iconButton, tip } from "./components";
 import { taskImportPrompt } from "../core/taskImport";
 import { modelPicker } from "./modelPicker";
@@ -161,22 +162,29 @@ export class LubiSettingTab extends PluginSettingTab {
       choices = modelPicker(t.inputEl, s.aiModel, value => { s.aiModel = value;updateSummary();save(); });
       return t;
     });
-    const key = new Setting(ai).setName("API Key").setDesc("只在当前会话保存；重启后需重新填写。本地 Ollama 可留空");
+    const key = new Setting(ai).setName("临时 API Key").setDesc("只在本次会话有效，填写后优先于钥匙串中的 Key；本地 Ollama 可留空");
     key.settingEl.addClass("lubi-setting-stacked");
     key.addText((t) => { t.inputEl.type = "password"; t.inputEl.setAttribute("aria-label", "AI API Key"); t.inputEl.dataset.setting = "ai-key"; return t.setValue(s.aiApiKey).onChange((v) => { s.aiApiKey = v.trim(); save(); }); });
+    // Obsidian 1.11.4+ keychain: data.json keeps only the secret name; the runtime guard covers test mocks.
+    if (this.app.secretStorage && typeof SecretComponent === "function") {
+      const keychain = new Setting(ai).setName("钥匙串中的 API Key").setDesc("从 Obsidian 钥匙串选择或新建 Key，重启后无需重新填写；设置文件只保存 Key 的名称");
+      keychain.settingEl.addClass("lubi-setting-stacked");
+      keychain.settingEl.dataset.setting = "ai-keychain";
+      new SecretComponent(this.app, keychain.controlEl).setValue(s.aiKeySecret).onChange((v) => { s.aiKeySecret = v ?? ""; save(); });
+    }
     const aiActions = new Setting(ai);
     aiActions.settingEl.addClass("lubi-settings-actions");
     let fetchingModels = false;
     aiActions.addButton((b) => b.setButtonText("获取模型列表").onClick(async () => {
       if (fetchingModels) return;
       fetchingModels = true;b.setDisabled(true);
-      const requested = { aiEndpoint: s.aiEndpoint, aiApiKey: s.aiApiKey };
-      const current = () => !!modelInput?.isConnected && s.aiEndpoint === requested.aiEndpoint && s.aiApiKey === requested.aiApiKey;
+      const requested = { aiEndpoint: s.aiEndpoint, aiApiKey: aiKey(this.app, s) };
+      const current = () => !!modelInput?.isConnected && s.aiEndpoint === requested.aiEndpoint && aiKey(this.app, s) === requested.aiApiKey;
       try { await loadAiModels(requested, names => choices?.setModels(names), current); }
       finally { fetchingModels = false;b.setDisabled(false); }
     }));
-    aiActions.addButton((b) => b.setButtonText("测试连接").onClick(() => void testAiConnection(s)));
-    ai.createEl("p", { cls: "lubi-settings-note", text: "新填写的 Key 不写入设置文件。旧版明文 Key 在下次保存设置时移除；历史备份／同步副本需自行清理。远程接口必须 HTTPS，证书异常将拒绝连接。" });
+    aiActions.addButton((b) => b.setButtonText("测试连接").onClick(() => void testAiConnection({ ...s, aiApiKey: aiKey(this.app, s) })));
+    ai.createEl("p", { cls: "lubi-settings-note", text: "临时 Key 不写入设置文件；钥匙串中的 Key 由 Obsidian 保管，设置文件只记名称。旧版明文 Key 在下次保存设置时移除；历史备份／同步副本需自行清理。远程接口必须 HTTPS，证书异常将拒绝连接。" });
 
     const expenses = section("支出类别");
     new Setting(expenses).setName("类别列表").setDesc("逗号分隔").addTextArea((t) => { t.inputEl.setAttribute("aria-label", "支出类别"); return t.setValue(s.expenseTypes.join(", ")).onChange((v) => { s.expenseTypes = v.split(/[,，]/).map((x) => x.trim()).filter(Boolean); if (!s.expenseTypes.length) s.expenseTypes = ["其他"]; save(); }); });

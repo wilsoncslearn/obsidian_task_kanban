@@ -1158,7 +1158,7 @@ check(!root.querySelector(".lubi-error"), "no render errors after keyboard and s
   const ai = host.querySelector('.lubi-settings-ai');
   check(writes === 0 && JSON.stringify(settingsPlugin.settings) === initial, "settings: displaying and organizing settings does not save or mutate values");
   check([...host.querySelectorAll(':scope > .lubi-settings-section')].map(section => section.querySelector('h3, summary')?.textContent).join('|').includes('数据与日程|分类|JSON 任务导入|AI 任务创建fixture-model|支出类别|数据维护'), "settings: sections follow basics, categories, AI, expenses and maintenance");
-  check(ai && !ai.open && host.querySelectorAll('[data-setting=ai-model]').length === 1 && !ai.querySelector('select'), "settings: AI is collapsed by default with one editable model control");
+  check(ai && !ai.open && host.querySelectorAll('[data-setting=ai-model]').length === 1 && ![...ai.querySelectorAll('select')].some(el => !el.closest('[data-setting=ai-keychain]')), "settings: AI is collapsed by default with one editable model control");
   const input = (el, value, type = 'input') => { el.value = value; el.dispatchEvent(new window.Event(type, { bubbles: true })); };
   const row = name => [...host.querySelectorAll('.setting-item')].find(el => el.querySelector('.setting-item-name')?.textContent === name);
   const button = text => [...host.querySelectorAll('button')].find(el => el.textContent === text);
