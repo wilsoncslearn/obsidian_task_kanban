@@ -1,0 +1,60 @@
+# Build and test the Lubi plugin on every push to main and on pull requests.
+# The layout job is a non-blocking trial on Windows (needs a real browser and fonts).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: 插件源码/lubi
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  test:
+    name: Build, dist check, core and smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: 插件源码/lubi/package-lock.json
+      - run: npm ci
+      - name: Build and compare with the Vault distribution files
+        run: npm run check:dist
+      - run: npm run test:core
+      - run: npm run test:smoke
+
+  layout:
+    name: Layout tests (Windows, non-blocking trial)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    env:
+      LUBI_REQUIRE_BROWSER: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: 插件源码/lubi/package-lock.json
+      - run: npm ci
+      - name: Smoke tests (also writes the light task fragment used by a layout test)
+        run: npm run test:smoke
+      - run: npm run test:layout
