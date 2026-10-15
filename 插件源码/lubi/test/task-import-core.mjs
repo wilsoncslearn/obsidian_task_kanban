@@ -8,3 +8,10 @@ for(const value of bad)assert.throws(()=>parse(value));assert.throws(()=>parse('
 assert.throws(()=>parse({tasks:Array.from({length:IMPORT_TASK_LIMIT+1},()=>({title:'x'}))}));let deep={title:'x'};for(let i=0;i<4;i++)deep={title:'x',subtasks:[deep]};assert.throws(()=>parse({tasks:[deep]}));assert.throws(()=>parse(' '.repeat(1000001)));
 assert.equal(parse({tasks:[{title:'闰年',date:'2028-02-29',estimate:0}]}).length,1);assert.equal(parse({tasks:[{title:'月',repeat:{kind:'monthly',days:[31]},startDate:'2026-10-08'}]}).length,1);
 const prompt=taskImportPrompt(categories,'2026-10-07');assert(prompt.includes('2026-10-07')&&prompt.includes('学习')&&prompt.includes('运动'));const example=JSON.parse(prompt.slice(prompt.indexOf('{\n  "tasks"')));assert.equal(parse(example).length,1);console.log('PASS JSON task format: hierarchy, inheritance, identity, recurrence/span/date validation, unsafe fields, limits, and prompt example');
+
+assert.equal(parse({tasks:[{title:'地点',location:'  图书馆  '} ]})[0].location,'图书馆');
+assert.equal(parse({tasks:[{title:'旧格式'}]})[0].location,'');
+assert.equal(parse({tasks:[{title:'父',location:'图书馆',subtasks:[{title:'子'}]}]})[1].location,'');
+for(const location of [null,42,{},'a'.repeat(201)])assert.throws(()=>parse({tasks:[{title:'地点错误',location}]}));
+assert(prompt.includes('location')&&prompt.includes('不猜测'));
+console.log('PASS optional location: explicit, omitted, trimmed, no inheritance, validation and prompt');

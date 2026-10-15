@@ -3,17 +3,27 @@
 
 import { App, Notice, TFile, normalizePath } from "obsidian";
 import { LubiSettings } from "../settings";
-import { parseDate, shiftDate, stamp, uid, weekStart } from "./time";
+import { isValidDate, parseDate, shiftDate, stamp, uid, weekStart } from "./time";
+import { BackgroundPhase, BackgroundRun, Executor, backgroundRun, completedDate, executorOf, prepareExecutionSave, withBackgroundPhase } from "./execution";
 
 export type TaskStatus = "todo" | "doing" | "done";
 export type RepeatKind = "none" | "daily" | "weekly" | "monthly";
 
-export interface Project { id: string; title: string; created: string; }
+export interface Project { id: string; title: string; created: string; budgetMinutes?: number; }
 
 export interface Task {
+  budgetMinutes?: number;
+  outcome?: import("./productivity").TaskOutcome;
+  archived?: boolean;
+  reschedules?: number;
   id: string;
   title: string;
   category: string;
+  /** 可选地点；旧任务未填写时为空。 */
+  location?: string;
+  /** Optional v14 metadata; old tasks are self-executed without migration. */
+  executor?: Executor;
+  backgroundRuns?: Record<string, BackgroundRun>;
   parent: string | null;
   /** Optional project membership; legacy parent links remain readable until conversion. */
   project?: string;
@@ -23,7 +33,7 @@ export interface Task {
   date: string;
   /** 安排开始时间 HH:MM，空 = 全天 */
   start: string;
-  /** 预计分钟 */
+  /** 预计本人投入分钟；后台标注用时单独保存。 */
   estimate: number;
   repeat: { kind: RepeatKind; days: number[] };
   /** 重复任务：已完成的日期 */
@@ -38,7 +48,7 @@ export interface Task {
   doneAt: string;
   created: string;
   updated: string;
-  /** 勾选完成时顺手记下的记录（完成日期 → 记录标识），取消勾选时据此删掉那条记录 */
+  /** 兼容旧版的关联记录标记；取消完成不再删除实际记录。 */
   doneLogs?: Record<string, DoneLog>;
   /** "record"：在每日页直接记下的已完成事项自动生成的任务；删掉那条记录时一起删除 */
   origin?: "record";
@@ -65,6 +75,7 @@ export function blankTask(partial: Partial<Task> = {}): Task {
     id: uid(),
     title: "",
     category: "",
+    location: "",
     parent: null,
     status: "todo",
     blocked: false,
@@ -103,15 +114,15 @@ export class Tasks {
 
   get all(): Task[] {
     const containers = new Set(this.store.projectContainers || []);
-    return this.store.tasks.filter(t => !containers.has(t.id));
+    return this.store.tasks.filter(t => !containers.has(t.id) && !t.archived);
   }
 
   get projectList(): Project[] { return this.store.projects || []; }
   projectOf(task: Task): Project | undefined { return this.projectList.find(p => p.id === task.project); }
   lastProjectBackup: string | null = null;
 
-  /** Project changes publish only after a backed-up, conflict-checked single write. */
-  private async projectChange<T>(change: (store: TaskStore) => T): Promise<T> {
+  /** Copy-on-write mutations publish after conflict-checked persistence; project changes also back up. */
+  private async storeChange<T>(change: (store: TaskStore) => T, backup = true, forceWrite = false): Promise<T> {
     await this.load();
     if (this.loadBlocked) throw new Error(this.lastLoadError || "任务数据不可写");
     let result!: T;
@@ -124,11 +135,13 @@ export class Tasks {
       const copy = JSON.parse(JSON.stringify(base)) as TaskStore;
       result = change(copy);
       const text = JSON.stringify(copy, null, 2);
-      if (text === JSON.stringify(this.store, null, 2)) return;
+      if ((!forceWrite && text === JSON.stringify(base, null, 2)) || text === before) return;
       if (file instanceof TFile) {
-        const backup = normalizePath(`${this.settings().backupFolder}/项目变更前-${stamp()}-${uid()}.json`);
-        await ensureFolder(this.app, backup.slice(0, backup.lastIndexOf("/")));
-        await this.app.vault.adapter.write(backup, before!); this.lastProjectBackup = backup;
+        if (backup) {
+          const path = normalizePath(`${this.settings().backupFolder}/项目变更前-${stamp()}-${uid()}.json`);
+          await ensureFolder(this.app, path.slice(0, path.lastIndexOf("/")));
+          await this.app.vault.adapter.write(path, before!); this.lastProjectBackup = path;
+        }
         if (file.path !== p) throw new Error("任务文件已被移动，未修改");
         this.lastWriteAt = Date.now();
         await this.app.vault.process(file, current => { if (current !== before) throw new Error("备份后任务文件已变化，未修改"); return text; });
@@ -151,16 +164,40 @@ export class Tasks {
 
   async addProject(title: string): Promise<Project> {
     title = title.trim(); if (!title || title.length > 200) throw new Error("项目名须为 1–200 字符");
-    return this.projectChange(store => {
+    return this.storeChange(store => {
       store.projects ||= [];
       const found = store.projects.find(p => p.title === title); if (found) return found;
       const project = { id: uid(), title, created: new Date().toISOString() };store.projects.push(project);return project;
     });
   }
 
+  /** Atomic, conflict-checked product edits. UI supplies observed task snapshots. */
+  async productBatch(changes: { before: Task; after: Task }[], additions: Task[] = []): Promise<void> {
+    await this.storeChange(store => {
+      for (const c of changes) {
+        const index = store.tasks.findIndex(t => t.id === c.before.id);
+        if (index < 0 || JSON.stringify(store.tasks[index]) !== JSON.stringify(c.before)) throw new Error("任务已变化，请刷新后重试");
+        if (c.after.id !== c.before.id) throw new Error("任务 ID 不可改变");
+        store.tasks[index] = JSON.parse(JSON.stringify(c.after));
+      }
+      for (const t of additions) {
+        if (store.tasks.some(x => x.id === t.id)) throw new Error("新增任务 ID 已存在");
+        store.tasks.push(JSON.parse(JSON.stringify(t)));
+      }
+    }, false);
+  }
+
+  async setProjectBudget(id: string, budgetMinutes: number): Promise<void> {
+    if (!Number.isFinite(budgetMinutes) || budgetMinutes < 0 || budgetMinutes > 6000000) throw new Error("预算无效");
+    await this.storeChange(store => {
+      const p = store.projects?.find(p => p.id === id); if (!p) throw new Error("项目不存在");
+      p.budgetMinutes = Math.round(budgetMinutes);
+    }, false);
+  }
+
   /** Explicit conversion only: keep all task IDs and archival container data for record references. */
   async convertParentsToProjects(recordIds: Set<string>): Promise<number> {
-    return this.projectChange(store => {
+    return this.storeChange(store => {
       const byId = new Map(store.tasks.map(t => [t.id, t]));
       if (byId.size !== store.tasks.length) throw new Error("任务 ID 重复，请先修复再转换");
       const parents = new Set(store.tasks.map(t => t.parent).filter((id): id is string => !!id && byId.has(id)));
@@ -289,7 +326,7 @@ export class Tasks {
     if (!tasks.length) throw new Error("没有可导入的任务");
     await this.load();
     if (tasks.some(t => t.project)) {
-      await this.projectChange(store => {
+      await this.storeChange(store => {
         store.projects ||= []; const ids = new Set(store.tasks.map(t => t.id));
         for (const input of tasks) {
           if (ids.has(input.id)) throw new Error("任务 ID 重复，未导入"); ids.add(input.id);
@@ -384,53 +421,100 @@ export class Tasks {
   // ---------- 变更 ----------
 
   async upsert(task: Task, completeParents = false): Promise<Task> {
-    if (task.project) { if (!this.projectOf(task)) throw new Error("所属项目不存在，请重新选择"); task.parent = null; }
-    task.updated = new Date().toISOString();
-    const i = this.store.tasks.findIndex((t) => t.id === task.id);
-    if (i >= 0) this.store.tasks[i] = task;
-    else this.store.tasks.push(task);
-    if (completeParents && task.status === "done" && task.parent) this.autoCompleteParent(task.parent);
-    await this.commit();
-    return task;
+    const now = Date.now();
+    const draft = { ...task, updated: new Date(now).toISOString() };
+    if (this.byId(task.id) !== task) task.updated = draft.updated;
+    return this.storeChange(store => {
+      const index = store.tasks.findIndex(t => t.id === draft.id);
+      const saved = prepareExecutionSave(draft, store.tasks[index], now);
+      if (saved.project) {
+        if (!store.projects?.some(project => project.id === saved.project)) throw new Error("所属项目不存在，请重新选择");
+        saved.parent = null;
+      }
+      if (index >= 0) store.tasks[index] = saved; else store.tasks.push(saved);
+      if (completeParents && saved.status === "done" && saved.parent) this.autoCompleteParent(saved.parent, store);
+      return saved;
+    }, false, true);
+  }
+
+  /** Manual background annotation only: no command, AI request or journal write. */
+  async setBackgroundPhase(id: string, date: string, phase: Exclude<BackgroundPhase, "accepted">): Promise<void> {
+    if (!["ready", "running", "review"].includes(phase)) throw new Error("后台状态无效");
+    await this.storeChange(store => {
+      const index = store.tasks.findIndex(task => task.id === id);
+      const task = store.tasks[index];
+      if (!task) throw new Error("任务已不存在");
+      if (executorOf(task) !== "background") throw new Error("请先将执行方式设为 Agent 后台");
+      if (task.repeat.kind === "none" ? task.status === "done" : task.doneDates.includes(date)) throw new Error("这次任务已完成，请先取消完成");
+      let saved = withBackgroundPhase(task, date, phase);
+      if (saved === task) return;
+      if (task.repeat.kind === "none") saved = { ...saved, status: phase === "ready" ? "todo" : "doing" };
+      store.tasks[index] = { ...saved, updated: new Date().toISOString() };
+    }, false);
   }
 
   async remove(id: string, withChildren = true): Promise<void> {
-    const ids = new Set([id, ...(withChildren ? this.descendants(id).map((d) => d.id) : [])]);
-    this.store.tasks = this.store.tasks.filter((t) => !ids.has(t.id));
-    if (!withChildren) for (const t of this.store.tasks) if (t.parent === id) t.parent = null;
-    await this.commit();
+    await this.storeChange(store => {
+      const ids = new Set([id]);
+      if (withChildren) {
+        let expanded = true;
+        while (expanded) {
+          expanded = false;
+          for (const task of store.tasks) if (task.parent && ids.has(task.parent) && !ids.has(task.id)) { ids.add(task.id); expanded = true; }
+        }
+      }
+      store.tasks = store.tasks.filter(task => !ids.has(task.id));
+      if (!withChildren) for (const task of store.tasks) if (task.parent === id) task.parent = null;
+    }, false);
+  }
+
+  /** Idempotent explicit completion, used by review acceptance and stale-safe checkboxes. */
+  async setDone(id: string, date: string, done: boolean): Promise<boolean> {
+    return this.completionChange(id, date, done);
   }
 
   async toggleDone(id: string, date: string): Promise<boolean> {
-    const t = this.byId(id);
-    if (!t) return false;
-    let done: boolean;
-    if (t.repeat.kind === "none") {
-      done = t.status !== "done";
-      t.status = done ? "done" : "todo";
-      t.doneAt = done ? new Date().toISOString() : "";
-      if (done && !t.date) t.date = date;
-    } else {
-      done = !t.doneDates.includes(date);
-      t.doneDates = done ? [...t.doneDates, date] : t.doneDates.filter((d) => d !== date);
-    }
-    t.updated = new Date().toISOString();
-    if (done && t.parent && !t.project) this.autoCompleteParent(t.parent);
-    await this.commit();
-    return done;
+    return this.completionChange(id, date);
   }
 
-  /** 登记 / 清除「勾选完成时记下的记录」 */
+  private async completionChange(id: string, date: string, requested?: boolean): Promise<boolean> {
+    if (!isValidDate(date)) throw new Error("完成日期无效");
+    return this.storeChange(store => {
+      const index = store.tasks.findIndex(task => task.id === id);
+      let task = store.tasks[index];
+      if (!task) return false;
+      const wasDone = this.isDoneOn(task, date), done = requested ?? !wasDone;
+      if (done === wasDone) return done;
+      if (task.repeat.kind === "none") {
+        task.status = done ? "done" : "todo";
+        task.doneAt = done ? new Date().toISOString() : "";
+      } else {
+        task.doneDates = done ? [...task.doneDates, date] : task.doneDates.filter(day => day !== date);
+        if (done) task.skipDates = task.skipDates.filter(day => day !== date);
+      }
+      if (executorOf(task) === "background") {
+        if (done) task = withBackgroundPhase(task, date, "accepted");
+        else if (backgroundRun(task, date)?.phase === "accepted") task = withBackgroundPhase(task, date, "review");
+      }
+      task.updated = new Date().toISOString();
+      store.tasks[index] = task;
+      if (done && task.parent && !task.project) this.autoCompleteParent(task.parent, store);
+      return done;
+    }, false);
+  }
+
+  /** Legacy association metadata only; never permission to erase a real record. */
   async setDoneLog(id: string, date: string, log: DoneLog | null): Promise<void> {
-    const t = this.byId(id);
-    if (!t) return;
-    const next = { ...(t.doneLogs || {}) };
-    if (log) next[date] = log;
-    else if (next[date]) delete next[date];
-    else return;
-    t.doneLogs = Object.keys(next).length ? next : undefined;
-    t.updated = new Date().toISOString();
-    await this.commit();
+    await this.storeChange(store => {
+      const task = store.tasks.find(task => task.id === id);
+      if (!task) return;
+      const next = { ...task.doneLogs };
+      if (log) next[date] = log;
+      else if (next[date]) delete next[date];
+      else return;
+      task.doneLogs = Object.keys(next).length ? next : undefined;
+      task.updated = new Date().toISOString();
+    }, false);
   }
 
   /** 重复任务的单日例外：跳过 / 恢复当天，不改变重复规则。 */
@@ -444,14 +528,18 @@ export class Tasks {
     return !skipped;
   }
 
-  private autoCompleteParent(pid: string): void {
-    const p = this.byId(pid);
-    if (!p) return;
-    const kids = this.children(pid);
-    if (kids.length && kids.every((k) => k.status === "done")) {
-      p.status = "done";
-      p.doneAt = new Date().toISOString();
-      if (p.parent) this.autoCompleteParent(p.parent);
+  private autoCompleteParent(pid: string, store: TaskStore = this.store, seen = new Set<string>()): void {
+    if (seen.has(pid)) return;
+    seen.add(pid);
+    const parent = store.tasks.find(task => task.id === pid);
+    // Background results always need an explicit human acceptance, including legacy parents.
+    if (!parent || executorOf(parent) === "background") return;
+    const archived = new Set(store.projectContainers || []);
+    const children = store.tasks.filter(task => task.parent === pid && !archived.has(task.id));
+    if (children.length && children.every(task => task.status === "done")) {
+      parent.status = "done";
+      parent.doneAt = new Date().toISOString();
+      if (parent.parent) this.autoCompleteParent(parent.parent, store, seen);
     }
   }
 
@@ -511,7 +599,7 @@ function byTime(a: Task, b: Task): number {
 
 export function occursOn(t: Task, date: string): boolean {
   if (t.skipDates?.includes(date)) return false;
-  if (t.repeat.kind === "none") return t.date === date;
+  if (t.repeat.kind === "none") return t.date === date || (!t.date && completedDate(t) === date);
   if (t.startDate && date < t.startDate) return false;
   if (t.endDate && date > t.endDate) return false;
   if (t.created && date < t.created.slice(0, 10) && !t.startDate) return false;

@@ -1,3 +1,4 @@
+import { categoryTone } from "./monochrome";
 import type LubiPlugin from "../main";
 import { Task } from "../core/tasks";
 import { monthCalendarDays, planOccurrences } from "../core/planning";
@@ -29,7 +30,7 @@ export function renderMonthCalendar(plugin: LubiPlugin, card: HTMLElement, selec
     for (const occurrence of planOccurrences(plugin.tasks.all, [date])) {
       const task = occurrence.task;
       const chip = cell.createEl("button", { cls: `lubi-month-task ${occurrence.done ? "is-done" : ""}`, attr: { type: "button", "data-task-id": task.id, "data-date": date } });
-      chip.style.setProperty("--chip", categoryOf(plugin.settings, task.category).color);
+      chip.style.setProperty("--chip", categoryTone(plugin.settings, task.category));
       catDot(chip, categoryOf(plugin.settings, task.category));
       if (occurrence.timed) chip.createSpan({ cls: "lubi-month-task-time", text: task.start });
       chip.createSpan({ cls: "lubi-month-task-title", text: task.title });
@@ -44,6 +45,7 @@ export function renderMonthCalendar(plugin: LubiPlugin, card: HTMLElement, selec
 
 export function renderRangeList(plugin: LubiPlugin, card: HTMLElement, days: string[], rerender: () => void, edit: Edit, decorate: Decorate, drop: Drop): void {
   const items = planOccurrences(plugin.tasks.all, days);
+
   const groups = new Map<string, typeof items>();
   for (const item of items) { const list = groups.get(item.date) || []; list.push(item); groups.set(item.date, list); }
   const host = card.createDiv({ cls: "lubi-plan-range-list" });

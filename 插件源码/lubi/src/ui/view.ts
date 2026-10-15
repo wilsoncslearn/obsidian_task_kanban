@@ -11,6 +11,7 @@ import { ShortcutsModal, TaskModal } from "./modals";
 import { AiTaskModal } from "./aiTask";
 import { fitGanttLabels, updateGanttNow } from "./ganttLabels";
 import { JsonTaskImportModal } from "./taskImport";
+import { updateBackgroundClocks } from "./execution";
 
 export const VIEW_TYPE = "lubi-dashboard";
 export type Tab = "tasks" | "review";
@@ -21,7 +22,7 @@ export class DashboardView extends ItemView {
   date = todayStr();
   tab: Tab = "tasks";
   review: ReviewState = { period: "week", anchor: todayStr(), display: "chart" };
-  tasksState: TasksState = { selectedDate: todayStr(), scheduleView: "calendar", period: "day", ganttCollapsed: new Set() };
+  tasksState: TasksState = { selectedDate: todayStr(), scheduleView: "list", period: "day", ganttCollapsed: new Set() };
   private body!: HTMLElement;
   private dateLabel!: HTMLElement;
   private todayBtn!: HTMLButtonElement;
@@ -144,6 +145,7 @@ export class DashboardView extends ItemView {
 
   private openMore(e: MouseEvent): void {
     const menu = new Menu();
+    menu.addItem((i) => i.setTitle("工作复盘与整理").setIcon("clipboard-list").onClick(() => this.plugin.openProduct()));
     menu.addItem((i) => i.setTitle("打开日记文件").setIcon("file-text").onClick(() => void this.plugin.openJournal(this.activeDate())));
     menu.addItem((i) => i.setTitle("导出数据 JSON").setIcon("download").onClick(() => void this.plugin.exportJson()));
     menu.addItem((i) => i.setTitle("快捷键").setIcon("keyboard").onClick(() => new ShortcutsModal(this.app).open()));
@@ -308,7 +310,11 @@ export class DashboardView extends ItemView {
     fitGanttLabels(host);
     updateGanttNow(host);
     if (this.ganttClock !== undefined) window.clearInterval(this.ganttClock);
-    this.ganttClock = this.ganttObserved ? window.setInterval(() => updateGanttNow(this.contentEl), 30_000) : undefined;
+    updateBackgroundClocks(host);
+    this.ganttClock = this.ganttObserved || host.querySelector("[data-background-started-at]") ? window.setInterval(() => {
+      updateGanttNow(this.contentEl);
+      updateBackgroundClocks(this.contentEl);
+    }, 30_000) : undefined;
     void document.fonts?.ready.then(() => { if (host.isConnected) fitGanttLabels(host); });
 
     this.lastRenderKey = key;

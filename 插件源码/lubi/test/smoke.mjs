@@ -11,9 +11,11 @@ const check = (cond, msg) => { if (!cond) { fails++; console.log("FAIL", msg); }
 const tick = () => new Promise((r) => setTimeout(r, 30));
 
 const checkInfoWithoutFooter = async (target, label, required) => {
-  check(!!target, 'tooltip footer: fixture available for ' + label);
-  if (!target) return;
-  target.focus(); await tick();
+  check(!!target?.isConnected, 'tooltip footer: fixture available for ' + label);
+  if (!target?.isConnected) return;
+  // Keyboard-focus tooltips render synchronously. Do not yield with a captured element:
+  // a queued view refresh can detach it before focus or remove its tooltip before assertions.
+  target.focus();
   const card = document.body.querySelector('.lubi-tip');
   check(!!card && required.every(text => card.textContent.includes(text)), 'tooltip footer: ' + label + ' retains its information');
   check(!!card && !card.querySelector('.lubi-task-tip-help') && !/拖动改时间|拉边缘改|点击或回车编辑|Shift 精确到分钟|点击记实际时间/.test(card.textContent), 'tooltip footer: ' + label + ' has no operation footer');
@@ -63,7 +65,7 @@ check(blocks().length === 1, "today timeline shows 1 block");
 await checkInfoWithoutFooter(blocks()[0], "daily record", ["分类："]);
 check(root.querySelector(".lubi-donut") !== null, "donut rendered");
 check(!root.querySelector(".lubi-today-side").classList.contains("lubi-card") && !root.querySelector(".lubi-today-side .lubi-card .lubi-card") && root.querySelector(".lubi-distribution.lubi-card"), "sidebar: distribution and plan use independent non-nested cards");
-check(root.querySelector(".lubi-today-side").firstElementChild?.classList.contains("lubi-distribution") && !root.querySelector(".lubi-distribution").matches("details") && root.querySelector(".lubi-distribution .lubi-donut"), "distribution: always visible at the top of the daily sidebar");
+check(root.querySelector(".lubi-today-side").firstElementChild?.classList.contains("lubi-background-card") && root.querySelector(".lubi-personal-time")?.nextElementSibling?.classList.contains("lubi-distribution") && !root.querySelector(".lubi-distribution").matches("details") && root.querySelector(".lubi-distribution .lubi-donut"), "MONO sidebar: background and personal time precede the preserved distribution");
 check([...root.querySelectorAll(".lubi-today-side .lubi-gap-card")].every(d => d.open), "gaps: visible by default");
 check(!root.querySelector(".lubi-tl-hint, .lubi-tl-stats, .lubi-onboard"), "simplify: no repeated timeline statistics or large onboarding");
 check(root.querySelectorAll(".mod-cta").length === 1, "simplify: daily page has one emphasized primary action");
@@ -82,8 +84,13 @@ view.review.period = "month"; view.show("review"); await tick(); await tick();
 check(root.querySelectorAll(".lubi-bar-col").length === 30, "review month has 30 bars");
 view.tasksState.period = "week"; view.show("tasks", "2026-09-24"); await tick();
 check(root.querySelectorAll(".lubi-week-col").length === 7, "week schedule 7 columns");
-check(root.querySelectorAll(".lubi-task-lists.lubi-card").length === 1 && !root.querySelector(".lubi-task-lists .lubi-card"), "simplify: selected-day, inbox and narrow agenda share one list card");
-check(!root.querySelector(".lubi-list-card:first-child .lubi-panel-head button") && root.querySelector(".lubi-list-card:nth-of-type(2) .lubi-panel-head button"), "simplify: duplicate day-create button removed, distinct inbox create retained");
+check([...root.querySelectorAll('.lubi-week-date')].map(e=>e.textContent).join(',') === '9/21,9/22,9/23,9/24,9/25,9/26,9/27', 'week headers show month/day');
+view.show('tasks', '2026-11-01'); await tick();
+check([...root.querySelectorAll('.lubi-week-date')].map(e=>e.textContent).join(',') === '10/26,10/27,10/28,10/29,10/30,10/31,11/1', 'week headers retain actual months across a month boundary');
+view.show('tasks', '2026-09-24'); await tick();
+
+check(!root.querySelector(".lubi-task-lists.lubi-card") && root.querySelector(".lubi-task-lists .lubi-inbox-card.lubi-card") && root.querySelector(".lubi-attention-card")?.parentElement?.classList.contains("lubi-planning-main"), "MONO hierarchy: attention in main, independent background/time/inbox sidebar cards");
+check(!root.querySelector(".lubi-selected-day-list .lubi-panel-head button") && root.querySelector(".lubi-inbox-card .lubi-inbox-add"), "MONO: no duplicate day-create button, distinct unplanned create retained");
 check(root.querySelectorAll(".mod-cta").length === 1 && root.querySelector(".lubi-quick-add input"), "simplify: task page has one primary CTA and keeps quick input");
 root.querySelector(".lubi-more-btn").click();
 const aiButton = root.querySelector(".lubi-topbar-ai");
@@ -114,7 +121,7 @@ for (const [name, target] of [['title', quietTitle], ['title text', quietTitle.q
 check([quietTitle, quietCheckbox].every(el => !el.hasAttribute('aria-label') && !el.hasAttribute('title') && !el.hasAttribute('data-lubi-tip') && document.getElementById(el.getAttribute('aria-labelledby'))?.textContent), 'list tooltip: accessible edit/completion names remain without native or custom hover labels');
 const startHint = quietRow.querySelector('.lubi-task-start');
 startHint.focus(); await tick();
-check(document.body.querySelector('.lubi-tip')?.textContent.includes('保存后完成任务'), 'list tooltip: green start action keeps its operation hint');
+check(document.body.querySelector('.lubi-tip')?.textContent.includes('记录本人实际'), 'list tooltip: green start action keeps its operation hint');
 startHint.blur();
 
 const weekTicks = [...root.querySelectorAll(".lubi-week-hour")];
@@ -150,109 +157,57 @@ check(app.vault.files.get("日记/2026-09-24.md").includes("23:30–00:00 睡眠
 // 24h 上限
 let capErr = null; try { await plugin.journal.add({ date: "2026-09-24", start: "00:00", minutes: 1440, category: "日常", title: "x", extra: {} }); } catch (e) { capErr = e.message; }
 check(capErr?.includes("24"), "24h cap enforced: " + capErr);
-// 勾任务 → 直接生成记录，不弹窗
+// Completion is a state fact, even when a legacy auto-log preference remains true.
 plugin.settings.promptLogOnComplete = true;
 view.tasksState.period = "week"; view.show("tasks", "2026-09-24"); await tick();
 {
-  const tk = [...root.querySelectorAll(".lubi-task")].find((t) => !t.classList.contains("is-done"));
-  const title = tk.querySelector(".lubi-task-title-text").textContent;
-  const before = O.openModals.length;
-  tk.querySelector("input[type=checkbox]").click(); for (let i = 0; i < 4; i++) await tick();
-  check(O.openModals.length === before, "completing task does not open a dialog");
-  check(app.vault.files.get("日记/2026-09-24.md").includes(`· ${title}`), "completing task writes a record directly: " + title);
-  for (const n of [...document.body.children]) if (n.querySelector?.(".lubi-notice-btn")) n.remove();
+  const task = [...root.querySelectorAll(".lubi-task")].find(row => !row.classList.contains("is-done"));
+  const before = app.vault.files.get("日记/2026-09-24.md"), dialogs = O.openModals.length;
+  task.querySelector("input[type=checkbox]").click(); for (let i = 0; i < 5; i++) await tick();
+  check(O.openModals.length === dialogs, "completion: no implicit record dialog");
+  check(app.vault.files.get("日记/2026-09-24.md") === before, "completion: legacy preference does not fabricate a record");
 }
-view.show("today"); await tick();
-// ---------- 勾选 ↔ 取消：时间线记录成对出现 / 消失（不弹窗）；任务页完成的事出现在每日页时间轴 ----------
 {
   const D = "2026-09-24", ID = "sync-1";
-  await plugin.tasks.upsert({ ...plugin.tasks.all[0], id: ID, title: "同步测试", parent: null, status: "todo", blocked: false, date: D, start: "06:00", estimate: 30, repeat: { kind: "none", days: [] }, doneDates: [], doneLogs: undefined, startDate: "", endDate: "", origin: undefined });
-  const linked = () => (app.vault.files.get(`日记/${D}.md`) || "").split("\n").filter((l) => l.includes(`[任务:: ${ID}]`));
-  const row = () => [...root.querySelectorAll(".lubi-task")].find((r) => r.querySelector(".lubi-task-title-text")?.textContent === "同步测试");
-  const toggle = async () => { row().querySelector("input[type=checkbox]").click(); for (let i = 0; i < 4; i++) await tick(); };
-  view.tasksState.period = "week"; view.show("tasks", D); await tick();
-  const modalsBefore = O.openModals.length;
+  const { blankTask } = await import("./core.mjs");
+  await plugin.tasks.upsert(blankTask({ id: ID, title: "同步测试", category: "学习", date: D, start: "06:00", estimate: 30 }));
+  const linked = () => (app.vault.files.get(`日记/${D}.md`) || "").split("\n").filter(line => line.includes(`[任务:: ${ID}]`));
+  const row = () => [...root.querySelectorAll(".lubi-task")].find(row => row.querySelector(".lubi-task-title-text")?.textContent === "同步测试");
+  const settle = async () => { for (let i = 0; i < 7; i++) await tick(); };
+  const toggle = async () => { row().querySelector("input[type=checkbox]").click(); await settle(); };
+  view.tasksState.period = "week"; view.show("tasks", D); await settle();
+  for (let i = 0; i < 5; i++) { await toggle(); await toggle(); }
+  check(linked().length === 0 && !plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "completion: repeated check/uncheck creates no time records");
+  row().querySelector("input[type=checkbox]").click(); row().querySelector("input[type=checkbox]").click(); await settle();
+  check(plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D) && linked().length === 0, "completion: rapid double click completes once without implicit time");
+  const fill = row().querySelector(".lubi-task-unlogged");
+  check(!!fill, "backfill: explicit planning-based action is available with valid inputs");
+  fill.click(); await settle();
+  check(linked().length === 1 && linked()[0].includes("[待确认:: 按计划]"), "backfill: explicit action creates one pending record");
+  [...document.body.querySelectorAll(".lubi-notice-btn")].at(-1).click(); await settle();
+  check(linked().length === 0 && plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "backfill: undo affects only the created record, not completion");
+  await plugin.journal.add({ date: D, start: "06:00", minutes: 30, category: "学习", title: "同步测试", task: ID, extra: { 自定义: "保留" } });
+  await plugin.tasks.setDoneLog(ID, D, { date: D, start: "06:00", title: "同步测试", category: "学习" });
   await toggle();
-  check(O.openModals.length === modalsBefore, "sync: checking does not open a dialog");
-  check(linked().length === 1 && linked()[0].startsWith("- 06:00–06:30") && plugin.tasks.byId(ID).doneLogs?.[D]?.start === "06:00", "sync: checking writes the planned slot and registers it");
-  check(document.body.textContent.includes("已按计划记下「同步测试」"), "sync: auto record is announced with undo");
-  check(linked()[0]?.includes("[待确认:: 按计划]"), "sync: auto record is marked 待确认 (planned, not actual)");
-  // 撤销自动记录 = 撤销这次勾选
-  [...document.body.querySelectorAll(".lubi-notice-btn")].at(-1).click(); for (let i = 0; i < 4; i++) await tick();
-  check(linked().length === 0 && !plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D) && !plugin.tasks.byId(ID).doneLogs, "sync: undo removes the record and unchecks the task");
-  view.tasksState.period = "week"; view.show("tasks", D); await tick();
-  await toggle();
-  await toggle();
-  check(linked().length === 0 && !plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D) && !plugin.tasks.byId(ID).doneLogs, "sync: unchecking removes the record created by checking");
-  check(document.body.textContent.includes("已取消完成") && !!document.body.querySelector(".lubi-notice-btn"), "sync: removal is announced with undo");
-  [...document.body.querySelectorAll(".lubi-notice-btn")].at(-1).click(); for (let i = 0; i < 4; i++) await tick();
-  check(linked().length === 1 && plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D) && !!plugin.tasks.byId(ID).doneLogs?.[D], "sync: undo restores record, done state and registration");
-  view.tasksState.period = "week"; view.show("tasks", D); await tick();
-  await toggle();
-  // 反复勾选 / 取消 5 轮：任何时刻最多 1 条
-  let maxSeen = 0;
-  for (let i = 0; i < 5; i++) {
-    await toggle(); maxSeen = Math.max(maxSeen, linked().length);
-    await toggle(); maxSeen = Math.max(maxSeen, linked().length);
-  }
-  check(maxSeen === 1 && linked().length === 0, `sync: 5 check/uncheck rounds never duplicate (max ${maxSeen}, end ${linked().length})`);
-  // 连点：写盘期间的第二次点击被忽略
-  row().querySelector("input[type=checkbox]").click(); row().querySelector("input[type=checkbox]").click();
-  for (let i = 0; i < 4; i++) await tick();
-  check(plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D) && linked().length === 1, "sync: rapid double click toggles once");
-  // 每日页：拖动这条记录后再取消勾选，仍能精确删掉它
-  view.show("today", D); await tick();
-  const blk = [...root.querySelectorAll(".lubi-block-title")].find((b) => b.textContent === "同步测试");
-  check(!!blk, "sync: task completed on the task page shows on the daily timeline");
-  const blockEl = blk.closest(".lubi-block");
-  blockEl.dispatchEvent(new window.FocusEvent("focus"));
-  blockEl.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
-  for (let i = 0; i < 4; i++) await tick();
-  check(linked()[0]?.startsWith("- 06:05") && plugin.tasks.byId(ID).doneLogs?.[D]?.start === "06:05", "sync: moving the record on the timeline updates the pairing");
-  view.tasksState.period = "week"; view.show("tasks", D); await tick();
-  await toggle();
-  check(linked().length === 0, "sync: a moved record still pairs with the checkbox");
-  for (const n of [...document.body.children]) if (n.querySelector?.(".lubi-notice-btn")) n.remove();
-  // 已有关联记录（▶ 记的）时再勾选：不重复；取消勾选时保留它
-  await plugin.journal.add({ date: D, start: "06:30", minutes: 20, category: "学习", title: "同步测试", task: ID, extra: {} });
-  await toggle();
-  check(linked().length === 1, "sync: no extra record when a linked record already exists");
-  await toggle();
-  check(linked().length === 1, "sync: unchecking keeps records not created by the checkbox");
-  await plugin.journal.remove(D, await plugin.journal.findLine(D, { start: "06:30", minutes: 20, category: "学习", title: "同步测试" }));
-  // 勾选时记下的记录在外部被改过（例如直接改日记）：取消勾选不动它
-  await toggle();
-  const line = await plugin.journal.findLine(D, { start: "06:00", minutes: 30, category: plugin.tasks.byId(ID).category, title: "同步测试" });
-  const rec = (await plugin.journal.read(D)).find((r) => r.line === line).rec;
-  await plugin.journal.update(D, line, { ...rec, start: "06:10" });
-  view.tasksState.period = "week"; view.show("tasks", D); await tick();
-  await toggle();
-  check(linked().length === 1 && O.notices.at(-1).includes("已被修改"), "sync: externally edited record is kept on uncheck");
-  await plugin.journal.remove(D, await plugin.journal.findLine(D, { ...rec, start: "06:10" }));
-  // 在每日页删除勾选生成的记录 → 任务回到未完成
-  await toggle();
-  view.show("today", D); await tick();
-  const b2 = [...root.querySelectorAll(".lubi-block")].find((b) => b.querySelector(".lubi-block-title")?.textContent === "同步测试");
-  b2.querySelector('.lubi-block-actions [data-icon="trash-2"]').click(); for (let i = 0; i < 4; i++) await tick();
-  check(linked().length === 0 && !plugin.tasks.byId(ID), "sync: deleting the only record of a one-off task on the daily page deletes the task too");
-  check(O.notices.at(-1)?.includes("也已删除") || document.body.textContent.includes("也已删除"), "sync: task deletion is announced");
-  [...document.body.querySelectorAll(".lubi-notice-btn")].at(-1).click(); for (let i = 0; i < 4; i++) await tick();
-  check(linked().length === 1 && plugin.tasks.byId(ID) && plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "sync: undo brings back both the record and the task");
-  // 还有别的记录关联：任务保留，只取消当天完成
-  await plugin.journal.add({ date: "2026-09-23", start: "07:00", minutes: 20, category: "学习", title: "同步测试", task: ID, extra: {} });
-  view.show("today", D); await tick();
-  [...root.querySelectorAll(".lubi-block")].find((b) => b.querySelector(".lubi-block-title")?.textContent === "同步测试").querySelector('.lubi-block-actions [data-icon="trash-2"]').click(); for (let i = 0; i < 4; i++) await tick();
-  check(linked().length === 0 && plugin.tasks.byId(ID) && !plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "sync: a task with other linked records is kept and unchecked");
-  await plugin.journal.remove("2026-09-23", await plugin.journal.findLine("2026-09-23", { start: "07:00", minutes: 20, category: "学习", title: "同步测试" }));
-  // 重复任务：保留任务，只取消当天完成
-  await plugin.tasks.upsert({ ...plugin.tasks.byId(ID), repeat: { kind: "daily", days: [] }, status: "todo", doneDates: [D], doneLogs: undefined });
-  await plugin.journal.add({ date: D, start: "06:40", minutes: 20, category: "学习", title: "同步测试", task: ID, extra: {} });
-  view.show("today", D); await tick();
-  [...root.querySelectorAll(".lubi-block")].find((b) => b.querySelector(".lubi-block-title")?.textContent === "同步测试").querySelector('.lubi-block-actions [data-icon="trash-2"]').click(); for (let i = 0; i < 4; i++) await tick();
-  check(linked().length === 0 && plugin.tasks.byId(ID) && !plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "sync: deleting a repeating task's record keeps the task, unchecks the day");
-  if (plugin.tasks.byId(ID)) await plugin.tasks.remove(ID);
-  // 清掉本段产生的撤销提示，避免后面的用例点到它们
-  for (const n of [...document.body.children]) if (n.querySelector?.(".lubi-notice-btn")) n.remove();
+  check(linked().length === 1 && !plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "completion: reopening preserves actual records including legacy associations");
+  view.show("today", D); await settle();
+  let block = [...root.querySelectorAll(".lubi-block")].find(block => block.querySelector(".lubi-block-title")?.textContent === "同步测试");
+  block.dispatchEvent(new window.FocusEvent("focus")); block.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true })); await settle();
+  check(linked()[0].startsWith("- 06:05") && linked()[0].includes("[自定义:: 保留]"), "completion: actual-record edits retain their data independently");
+  view.tasksState.period = "week"; view.show("tasks", D); await settle(); await toggle(); await toggle();
+  check(linked().length === 1, "completion: moved real records are not deleted by later state changes");
+  await plugin.tasks.setDone(ID, D, true); view.show("today", D); await settle();
+  block = [...root.querySelectorAll(".lubi-block")].find(block => block.querySelector(".lubi-block-title")?.textContent === "同步测试");
+  block.querySelector('.lubi-block-actions [data-icon="trash-2"]').click(); await settle();
+  check(linked().length === 0 && plugin.tasks.byId(ID) && plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "deletion: removing an actual record preserves its planned task and completion");
+  [...document.body.querySelectorAll(".lubi-notice-btn")].at(-1).click(); await settle();
+  check(linked().length === 1 && plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "deletion: undo restores the record without changing completion");
+  await plugin.tasks.upsert({ ...plugin.tasks.byId(ID), repeat: { kind: "daily", days: [] }, status: "todo", doneDates: [D] });
+  view.show("today", D); await settle();
+  [...root.querySelectorAll(".lubi-block")].find(block => block.querySelector(".lubi-block-title")?.textContent === "同步测试").querySelector('.lubi-block-actions [data-icon="trash-2"]').click(); await settle();
+  check(linked().length === 0 && plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D), "deletion: repeated occurrence completion is also independent");
+  await plugin.tasks.remove(ID);
+  for (const notice of [...document.body.children]) if (notice.querySelector?.(".lubi-notice-btn")) notice.remove();
 }
 // ---------- 每日页新记的事 ↔ 任务页的已完成任务 ----------
 {
@@ -277,9 +232,9 @@ view.show("today"); await tick();
   // 在每日页取消勾选 → 记录一起移除
   const r = [...root.querySelectorAll(".lubi-task")].find((x) => x.querySelector(".lubi-task-title-text")?.textContent === "补记午饭后散步");
   r.querySelector("input[type=checkbox]").click(); await settle();
-  check(!app.vault.files.get(`日记/${D}.md`).includes("补记午饭后散步"), "new: unchecking the done task removes its record");
-  [...document.body.querySelectorAll(".lubi-notice-btn")].at(-1).click(); await settle();
-  check(app.vault.files.get(`日记/${D}.md`).includes("补记午饭后散步"), "new: undo brings the record back");
+  check(app.vault.files.get(`日记/${D}.md`).includes("补记午饭后散步"), "new: reopening a record-origin task preserves the real record");
+  await plugin.tasks.setDone(t.id, D, true); await settle();
+  check(app.vault.files.get(`日记/${D}.md`).includes("补记午饭后散步"), "new: completing again does not duplicate or alter the record");
   // 在每日页删除这条记录 → 任务一起删除，可撤销
   view.show("today", D); await tick();
   const b = [...root.querySelectorAll(".lubi-block")].find((x) => x.querySelector(".lubi-block-title")?.textContent === "补记午饭后散步");
@@ -351,47 +306,31 @@ view.show("today"); await tick();
   for (const [s, t] of [["04:00", "删除保留测试"], ["04:30", "删除记录测试"]]) await plugin.journal.remove(D, await plugin.journal.findLine(D, { start: s, minutes: 15, category: "学习", title: t }));
   for (const n of [...document.body.children]) if (n.querySelector?.(".lubi-notice-btn")) n.remove();
 }
-// ---------- 编辑窗口改状态也直接记；漏记的任务可一键补记 ----------
+// ---------- Editing task status and explicit backfill are independent ----------
 {
   const D = "2026-09-24", ID = "log-miss";
-  const settle = async () => { for (let i = 0; i < 5; i++) await tick(); };
-  await plugin.tasks.upsert({ ...plugin.tasks.all[0], id: ID, title: "漏记测试", parent: null, status: "todo", blocked: false, date: D, start: "03:00", estimate: 20, repeat: { kind: "none", days: [] }, doneDates: [], doneLogs: undefined, startDate: "", endDate: "", origin: undefined });
-  const linked = () => (app.vault.files.get(`日记/${D}.md`) || "").split("\n").filter((l) => l.includes(`[任务:: ${ID}]`));
-  const row = () => [...root.querySelectorAll(".lubi-task")].find((r) => r.querySelector(".lubi-task-title-text")?.textContent === "漏记测试");
-  const setStatus = async (v) => {
+  const { blankTask } = await import("./core.mjs");
+  const settle = async () => { for (let i = 0; i < 7; i++) await tick(); };
+  await plugin.tasks.upsert(blankTask({ id: ID, title: "漏记测试", category: "学习", date: D, start: "03:00", estimate: 20 }));
+  const linked = () => (app.vault.files.get(`日记/${D}.md`) || "").split("\n").filter(line => line.includes(`[任务:: ${ID}]`));
+  const row = () => [...root.querySelectorAll(".lubi-task")].find(row => row.querySelector(".lubi-task-title-text")?.textContent === "漏记测试");
+  const setStatus = async status => {
     row().querySelector(".lubi-task-title-button").click(); await tick();
-    const m = O.openModals.at(-1);
-    m.contentEl.querySelector(`.lubi-status-seg [data-task-status="${v}"]`).click();
-    m.contentEl.querySelector(".lubi-modal-actions .mod-cta").click(); await settle();
+    const form = O.openModals.at(-1); form.contentEl.querySelector(`.lubi-status-seg [data-task-status="${status}"]`).click();
+    form.contentEl.querySelector(".lubi-modal-actions .mod-cta").click(); await settle();
   };
-  view.tasksState.period = "week"; view.show("tasks", D); await tick();
+  view.tasksState.period = "week"; view.show("tasks", D); await settle();
   await setStatus("done");
-  check(!O.openModals.some((x) => x.constructor.name === "RecordModal"), "log: marking done in the task dialog does not open a record dialog");
-  check(linked().length === 1 && plugin.tasks.byId(ID).doneLogs?.[D]?.start === "03:00", "log: marking done in the task dialog writes and registers the record");
-  view.tasksState.period = "week"; view.show("tasks", D); await settle();
-  check(!row().querySelector(".lubi-task-unlogged"), "log: no backfill hint when the time is recorded");
+  check(linked().length === 0 && plugin.tasks.byId(ID).status === "done", "status: editing completion does not fabricate actual time");
+  row().querySelector(".lubi-task-unlogged").click(); await settle();
+  check(linked().length === 1 && linked()[0].includes("[待确认:: 按计划]"), "status: backfill is explicit and pending");
   await setStatus("todo");
-  check(linked().length === 0 && !plugin.tasks.byId(ID).doneLogs, "log: setting back to todo in the dialog removes that record");
-  for (const n of [...document.body.children]) if (n.querySelector?.(".lubi-notice-btn")) n.remove();
-  // 记录在外部被删 → 待办里出现「未记时间 · 补记」
-  view.tasksState.period = "week"; view.show("tasks", D); await tick();
-  row().querySelector("input[type=checkbox]").click(); await settle();
-  await plugin.journal.remove(D, await plugin.journal.findLine(D, { start: "03:00", minutes: 20, category: plugin.tasks.byId(ID).category, title: "漏记测试" }));
-  view.tasksState.period = "week"; view.show("tasks", D); await settle();
-  const hint = row()?.querySelector(".lubi-task-unlogged");
-  check(!!hint && hint.textContent.includes("补记") && !hint.hasAttribute("title"), "log: done task without a record shows the backfill hint");
-  hint.click(); await settle();
-  check(!O.openModals.some((x) => x.constructor.name === "RecordModal") && linked().length === 1, "log: backfill writes the record directly");
-  view.tasksState.period = "week"; view.show("tasks", D); await settle();
-  check(!row().querySelector(".lubi-task-unlogged") && !!plugin.tasks.byId(ID).doneLogs?.[D], "log: backfilled record clears the hint and is registered");
-  // 关闭「勾掉任务时自动记一条」时不提示
-  await plugin.journal.remove(D, await plugin.journal.findLine(D, { start: "03:00", minutes: 20, category: plugin.tasks.byId(ID).category, title: "漏记测试" }));
-  plugin.settings.promptLogOnComplete = false;
-  view.tasksState.period = "week"; view.show("tasks", D); await settle();
-  check(!row().querySelector(".lubi-task-unlogged"), "log: no hint when completion logging is turned off");
-  plugin.settings.promptLogOnComplete = true;
+  check(linked().length === 1 && plugin.tasks.byId(ID).status === "todo", "status: editing back to todo preserves time data");
+  await plugin.journal.remove(D, await plugin.journal.findLine(D, { start: "03:00", minutes: 20, category: "学习", title: "漏记测试" }));
+  plugin.settings.promptLogOnComplete = false; view.show("tasks", D); await settle();
+  check(!!row().querySelector(".lubi-task-unlogged"), "status: explicit backfill is not controlled by the obsolete auto-log preference");
   await plugin.tasks.remove(ID);
-  for (const n of [...document.body.children]) if (n.querySelector?.(".lubi-notice-btn")) n.remove();
+  for (const notice of [...document.body.children]) if (notice.querySelector?.(".lubi-notice-btn")) notice.remove();
 }
 // 快速添加待办
 view.tasksState.period = "week"; view.show("tasks", "2026-09-24"); await tick();
@@ -640,7 +579,7 @@ view.review.period = "week"; view.show("review", "2026-10-12"); await tick(); aw
 check(!root.textContent.includes("至少 2 天"), "sparse comparison does not claim a trend");
 view.tasksState.period = "week"; view.show("tasks", "2026-09-24"); await tick(); await tick();
 check(root.querySelector(".lubi-planning-head")&&root.querySelector(".lubi-week"), "planning keeps the selected presentation and shared controls instead of a separate narrow agenda");
-const visibleOrder = [...root.querySelectorAll(".lubi-tasks-left > .lubi-list-card, .lubi-tasks-left > .lubi-agenda-host")].map((node) => node.classList.contains("lubi-agenda-host") ? "agenda" : node.textContent.includes("未安排") ? "inbox" : "today");
+const visibleOrder = [...root.querySelectorAll(".lubi-tasks-left > .lubi-selected-day-list, .lubi-tasks-left > .lubi-inbox-card, .lubi-tasks-left > .lubi-agenda-host")].map((node) => node.classList.contains("lubi-agenda-host") ? "agenda" : node.textContent.includes("未安排") ? "inbox" : "today");
 check(JSON.stringify(visibleOrder) === JSON.stringify(["today", "inbox"]), "selected-day list precedes inbox without a duplicate narrow agenda");
 // 原生拖放：未安排 → 上方选中日清单（整个卡片都是落点）。
 const taskTransfer = () => ({
@@ -658,7 +597,7 @@ const inboxSource = root.querySelector('button[data-lubi-tip^="安排 待安排�
 const inboxTransfer = taskTransfer();
 dispatchTaskDrop(inboxSource, "dragstart", inboxTransfer);
 check(inboxTransfer.getData("text/lubi-task") === "inbox-0" && inboxTransfer.effectAllowed === "move", "inbox drag carries task id and move semantics");
-const selectedCard = root.querySelector(".lubi-tasks-left .lubi-list-card");
+const selectedCard = root.querySelector(".lubi-selected-day-list");
 const unrelatedTransfer = taskTransfer(); unrelatedTransfer.setData("text/plain", "普通文字");
 check(!dispatchTaskDrop(selectedCard, "dragover", unrelatedTransfer).defaultPrevented && !selectedCard.classList.contains("is-drop"), "day list ignores external text drags");
 check(dispatchTaskDrop(selectedCard.querySelector(".lubi-panel-title"), "dragover", inboxTransfer).defaultPrevented && selectedCard.classList.contains("is-drop") && inboxTransfer.dropEffect === "move", "whole day card accepts inbox drag and highlights");
@@ -674,13 +613,13 @@ await new Promise(resolve => setTimeout(resolve, 220)); await tick();
 const droppedInboxTask = plugin.tasks.byId("inbox-0");
 check(droppedInboxTask.date === "2026-09-24" && droppedInboxTask.start === "" && droppedInboxTask.status === "todo", "drop schedules selected date as all-day without completing task");
 check(JSON.parse(app.vault.files.get("任务/任务数据.json")).tasks.find(t => t.id === "inbox-0").date === "2026-09-24", "inbox drop persists to task file");
-check(!plugin.tasks.inbox().some(t => t.id === "inbox-0") && root.querySelector(".lubi-tasks-left .lubi-list-card").textContent.includes("待安排事项 1"), "dropped task moves from inbox into day list");
+check(!plugin.tasks.inbox().some(t => t.id === "inbox-0") && root.querySelector(".lubi-selected-day-list").textContent.includes("待安排事项 1"), "dropped task moves from inbox into day list");
 check(O.openModals.length === modalsBeforeInboxDrop && JSON.stringify([...app.vault.files].filter(([path]) => path.startsWith("日记/"))) === JSON.stringify(journalsBeforeInboxDrop), "drop opens no modal and creates no records");
 [...document.body.querySelectorAll(".lubi-notice-btn")].at(-1).click(); await tick(); await tick();
 check(plugin.tasks.byId("inbox-0").date === "" && plugin.tasks.inbox().some(t => t.id === "inbox-0"), "undo drop returns task to inbox");
 // 空日期列表也接受拖放，目标是所选日期而非系统当天。
 view.show("tasks", "2030-01-02"); await tick(); await tick();
-const emptyDayCard = root.querySelector(".lubi-tasks-left .lubi-list-card");
+const emptyDayCard = root.querySelector(".lubi-selected-day-list");
 check(!emptyDayCard.querySelector(".lubi-task"), "drop fixture has an empty selected-day list");
 dispatchTaskDrop(emptyDayCard.querySelector(".lubi-muted.lubi-pad"), "drop", inboxTransfer); await tick(); await tick();
 check(plugin.tasks.byId("inbox-0").date === "2030-01-02", "empty day card accepts drop using selected date");
@@ -726,7 +665,7 @@ view.tasksState.period = "week"; view.show("tasks", "2026-09-24"); await tick();
     await plugin.tasks.upsert(blankTask({ id: `sort-${i}`, title: `排序任务${i}`, date: D, start, estimate: 15, order: i + 10 }));
   }
   view.tasksState.period = "week"; view.show("tasks", D); await tick(); await tick();
-  const sortRows = () => [...root.querySelectorAll(".lubi-tasks-left .lubi-list-card:first-child .lubi-task[data-task-id]")];
+  const sortRows = () => [...root.querySelectorAll(".lubi-selected-day-list .lubi-task[data-task-id]")];
   const sortIds = () => sortRows().map(el => el.dataset.taskId);
   const fireSort = (target, type, data, y) => {
     const event = new window.MouseEvent(type, { bubbles: true, cancelable: true, clientY: y });
@@ -755,7 +694,7 @@ view.tasksState.period = "week"; view.show("tasks", "2026-09-24"); await tick();
   check(JSON.stringify(sortIds()) === JSON.stringify(["sort-0", "sort-1", "sort-2"]), "sort: drag first task after last moves downward");
   const self = taskTransfer(); dispatchTaskDrop(sortRows()[0], "dragstart", self);
   fireSort(sortRows()[0], "drop", self, 0); await tick();
-  dispatchTaskDrop(root.querySelector(".lubi-tasks-left .lubi-list-card .lubi-panel-head"), "drop", self); await tick();
+  dispatchTaskDrop(root.querySelector(".lubi-selected-day-list .lubi-panel-head"), "drop", self); await tick();
   check(plugin.tasks.byId("sort-0").start === "08:00" && sortIds()[0] === "sort-0", "sort: self-drop and card blank/header drop never clear scheduled start");
   sortRows()[1].dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowUp", altKey: true, bubbles: true, cancelable: true }));
   await new Promise(resolve => setTimeout(resolve, 220)); await tick();
@@ -988,7 +927,7 @@ check(!root.querySelector(".lubi-error"), "no render errors after keyboard and s
   const recorder = O.openModals.at(-1);
   check(recorder?.constructor.name === "TaskModal" && recorder.t.id === ID && recorder.t.start === "15:00" && recorder.t.estimate === 65 && recorder.actualText === "", "plan: task Start still pre-fills a linked actual record with the latest plan");
   fillActual(recorder,65,"15:00");
-  recorder.contentEl.querySelector(".lubi-modal-actions .mod-cta").click(); await settle();
+  if (!recorder.contentEl.querySelector("[data-actual-action=complete]").disabled) recorder.contentEl.querySelector("[data-actual-action=complete]").click(); recorder.contentEl.querySelector("[data-actual-action=record]").click(); await settle();
   check(plugin.tasks.isDoneOn(plugin.tasks.byId(ID), D) && plugin.tasks.byId(ID).doneLogs?.[D]?.start === "15:00", "plan: saving the record completes the task");
   check(!(app.vault.files.get(`日记/${D}.md`) || "").includes("[待确认::"), "plan: a record confirmed in the form is not pending");
   view.show("today", D); await settle();
@@ -1049,29 +988,31 @@ check(!root.querySelector(".lubi-error"), "no render errors after keyboard and s
     const modal = await openStart(task);
     check(!plugin.tasks.isDoneOn(plugin.tasks.byId(task.id), D), "start: opening the record does not complete the task");
     modal.t.title = "实际记录标题";
-    modal.contentEl.querySelector(".lubi-modal-actions .mod-cta").click(); await settle();
+    if (!modal.contentEl.querySelector("[data-actual-action=complete]").disabled) modal.contentEl.querySelector("[data-actual-action=complete]").click(); modal.contentEl.querySelector("[data-actual-action=record]").click(); await settle();
     const current = plugin.tasks.byId(task.id);
     const records = await linked(task.id);
     check(records.length === 1 && records[0].rec.title === "实际记录标题", "start: saving writes exactly one actual record");
     check(plugin.tasks.isDoneOn(current, D), `start: saving completes the ${repeating ? "repeating" : "one-off"} task`);
     check(current.doneLogs?.[D]?.title === "实际记录标题" && current.doneLogs?.[D]?.start === "10:00", "start: completion registers the saved record, not the original draft");
-    check(row(plugin.tasks.byId(task.id).title)?.querySelector('input[type="checkbox"]')?.checked && !row(plugin.tasks.byId(task.id).title)?.querySelector(".lubi-task-start"), "start: the task row shows completed and hides the start button");
-    check(root.querySelector(".lubi-list-card .lubi-panel-head .lubi-muted")?.textContent === "1/1 已做", "start: task completion count refreshes");
+    check(row(plugin.tasks.byId(task.id).title)?.querySelector('input[type="checkbox"]')?.checked && !!row(plugin.tasks.byId(task.id).title)?.querySelector(".lubi-task-start"), "start: completed rows still allow explicit actual recording");
+    check(root.querySelector(".lubi-selected-day-list .lubi-panel-head .lubi-muted")?.textContent === "1/1 已做", "start: task completion count refreshes");
     const persisted = JSON.parse(app.vault.files.get("任务/任务数据.json")).tasks.find((item) => item.id === task.id);
     check(repeating ? persisted.doneDates.includes(D) : persisted.status === "done", "start: completed state is persisted to the task file");
     if (repeating) check(plugin.tasks.isDoneOn(current, D) && current.doneDates.includes(previous) && !plugin.tasks.isDoneOn(current, shiftDate(D, 1)), "start: a repeating task completes only this occurrence and preserves other days");
     if (plugin.tasks.isDoneOn(current, D)) {
       row(plugin.tasks.byId(task.id).title).querySelector('input[type="checkbox"]').click(); await settle();
-      check(!plugin.tasks.isDoneOn(plugin.tasks.byId(task.id), D) && (await linked(task.id)).length === 0, "start: unchecking completion removes the registered record without duplicates");
+      check(!plugin.tasks.isDoneOn(plugin.tasks.byId(task.id), D) && (await linked(task.id)).length === 1, "start: unchecking completion preserves the registered actual record");
     }
     await clean(task.id);
   }
   plugin.settings.promptLogOnComplete = autoLog;
   const alreadyDone = await make("start-already-done");
-  const concurrentModal = await openStart(alreadyDone);
   await plugin.tasks.toggleDone(alreadyDone.id, D);
-  concurrentModal.contentEl.querySelector(".lubi-modal-actions .mod-cta").click(); await settle();
-  check(plugin.tasks.isDoneOn(plugin.tasks.byId(alreadyDone.id), D) && !!plugin.tasks.byId(alreadyDone.id).doneLogs?.[D] && (await linked(alreadyDone.id)).length === 1, "start: an already completed task stays completed and registers just the saved record");
+  const concurrentModal = await openStart(plugin.tasks.byId(alreadyDone.id));
+  check(concurrentModal.contentEl.querySelector("[data-actual-action=complete]").disabled && plugin.tasks.isDoneOn(plugin.tasks.byId(alreadyDone.id), D), "record-only: already completed fixture opens with disabled completion, not a fresh opt-in");
+  await plugin.tasks.toggleDone(alreadyDone.id, D);
+  if (!concurrentModal.contentEl.querySelector("[data-actual-action=complete]").disabled) concurrentModal.contentEl.querySelector("[data-actual-action=complete]").click(); concurrentModal.contentEl.querySelector("[data-actual-action=record]").click(); await settle();
+  check(!plugin.tasks.isDoneOn(plugin.tasks.byId(alreadyDone.id), D) && !!plugin.tasks.byId(alreadyDone.id).doneLogs?.[D] && (await linked(alreadyDone.id)).length === 1, "record-only: a concurrently reopened task keeps its latest status rather than stale auto completion");
   await clean(alreadyDone.id);
   const cancel = await make("start-cancel");
   (await openStart(cancel)).close(); await settle();
@@ -1082,7 +1023,7 @@ check(!root.querySelector(".lubi-error"), "no render errors after keyboard and s
   const originalAdd = plugin.journal.add;
   try {
     plugin.journal.add = async () => { throw new Error("Synthetic record write failure"); };
-    failedModal.contentEl.querySelector(".lubi-modal-actions .mod-cta").click(); await settle();
+    if (!failedModal.contentEl.querySelector("[data-actual-action=complete]").disabled) failedModal.contentEl.querySelector("[data-actual-action=complete]").click(); failedModal.contentEl.querySelector("[data-actual-action=record]").click(); await settle();
     check(!plugin.tasks.isDoneOn(plugin.tasks.byId(failure.id), D) && (await linked(failure.id)).length === 0, "start: a failed record write leaves the task unfinished");
     check(O.openModals.includes(failedModal) && failedModal.contentEl.textContent.includes("无法保存"), "start: a failed write keeps the form open with an error");
   } finally { plugin.journal.add = originalAdd; failedModal.close(); }
@@ -1107,7 +1048,7 @@ check(!root.querySelector(".lubi-error"), "no render errors after keyboard and s
     taskRow(task.title).querySelector(".lubi-task-start").click(); await tick();
     return O.openModals.at(-1);
   };
-  const save = async (modal) => { if(modal.constructor.name==="TaskModal"&&!modal.actualText.trim())fillActual(modal,modal.t.estimate||30,modal.t.start||"09:00"); modal.contentEl.querySelector(".lubi-modal-actions .mod-cta").click(); await settle(); };
+  const save = async (modal) => { if(modal.constructor.name==="TaskModal"&&!modal.actualText.trim())fillActual(modal,modal.t.estimate||30,modal.t.start||"09:00"); if(modal.constructor.name==="TaskModal"){const choice=modal.contentEl.querySelector("[data-actual-action=complete]");if(!choice.disabled&&!choice.checked&&!choice.closest("[hidden]"))choice.click();}modal.contentEl.querySelector(modal.constructor.name === "TaskModal" ? "[data-actual-action=record]" : ".lubi-modal-actions .mod-cta").click(); await settle(); };
   const task = await make("estimate-snapshot", 45);
   let modal = await openStart(task);
   check(modal.t.estimate===45&&modal.actualText==='','estimate UI: task start keeps forecast separate and actual duration blank');
@@ -1153,8 +1094,10 @@ check(!root.querySelector(".lubi-error"), "no render errors after keyboard and s
   const auto = await make("estimate-auto-log", 30);
   view.tasksState.period = "week"; view.show("tasks", D); await settle();
   taskRow(auto.title).querySelector('input[type="checkbox"]').click(); await settle();
+  check((await linked(auto.id)).length === 0, "estimate UI: completion alone never fabricates time");
+  taskRow(auto.title).querySelector('.lubi-task-unlogged').click(); await settle();
   const pending = (await linked(auto.id))[0].rec;
-  check(pending.estimatedMinutes === 30 && !!pending.extra[PENDING_KEY], "estimate UI: checkbox-generated records capture the forecast but remain pending");
+  check(pending.estimatedMinutes === 30 && !!pending.extra[PENDING_KEY], "estimate UI: explicit planned backfill captures the forecast but remains pending");
   view.show("today", D); await settle();
   check(blockFor(auto.title).getAttribute("data-lubi-tip").includes("核对后再比较") && !blockFor(auto.title).getAttribute("data-lubi-tip").includes("实际 30min"), "estimate UI: timeline does not treat pending time as measured actual time");
 
@@ -1226,8 +1169,8 @@ check(!root.querySelector(".lubi-error"), "no render errors after keyboard and s
   input(row('备份文件夹').querySelector('input'), '测试备份');
   check(JSON.stringify([stored.scheduleStartHour,stored.scheduleEndHour])===JSON.stringify(legacyHours), 'settings: unrelated saves preserve legacy numeric hour fields');
   input(row('每日可用小时').querySelector('input'), '100');
-  const auto = row('完成任务时自动记一条').querySelector('[role=checkbox]'); auto.click(); await tick();
-  check(stored.journalFolder === '测试日记' && stored.taskFile === '任务/测试任务.json' && stored.backupFolder === '测试备份' && stored.dailyCapacityHours === 24 && stored.promptLogOnComplete === (auto.getAttribute('aria-checked') === 'true'), "settings: paths, capacity clamp and auto-record toggle retain save behavior");
+  check(!!row('完成与时间记录') && !row('完成任务时自动记一条'), 'settings: completion independence replaces the obsolete auto-record switch');
+  check(stored.journalFolder === '测试日记' && stored.taskFile === '任务/测试任务.json' && stored.backupFolder === '测试备份' && stored.dailyCapacityHours === 24, "settings: paths and capacity clamp retain save behavior");
   check(host.querySelectorAll(".lubi-category-header").length === 1 && host.querySelector(".lubi-category-header").textContent === "名称图标颜色背景类型操作", "settings: category table displays a single concise header");
   let category = host.querySelector('.lubi-category-row');
   check([...category.querySelectorAll('.lubi-settings-field-label')].map(el => el.textContent).join('|') === '名称|图标|颜色|背景时间|类型', "settings: compact category row keeps accessible labels for every field");
@@ -1481,6 +1424,7 @@ console.log("data file now:", app.vault.files.get("任务/任务数据.json").sl
 {
   const ha=new O.App(),hp=new LubiPlugin(ha,{id:"lubi",version:"1.6.0"});await hp.onload();await hp.tasks.load();
   const hv=await hp.activateView("tasks","2026-09-21");await tick();await tick();
+  hv.tasksState.scheduleView="calendar"; // This suite exercises calendar hover explicitly, independent from the MONO default.
   const pe=(target,type,y,x=100)=>{const e=new window.MouseEvent(type,{bubbles:true,cancelable:true,clientY:y,clientX:x,button:0});Object.defineProperty(e,"pointerId",{value:9901});target.dispatchEvent(e);};
   for(const startH of [6,0]) {
     hp.settings.scheduleStartHour=startH;hv.tasksState.period="week";hv.show("tasks","2026-09-21");await tick();await tick();
@@ -1519,7 +1463,7 @@ console.log("data file now:", app.vault.files.get("任务/任务数据.json").sl
   const switchMode=async(mode)=>{[...gr.querySelectorAll(".lubi-schedule-switch button")].find(b=>b.dataset.lubiFocus===`schedule:${mode}`).click();await settle();if(mode==="gantt"){gr.querySelector('[data-lubi-focus="planning-period:month"]').click();await settle()}};
   const row=id=>gr.querySelector(`.lubi-gantt-row[data-task-id="${id}"]`),bar=id=>row(id)?.querySelector(".lubi-gantt-bar");
   const modelBefore=JSON.stringify(gp.tasks.all),vaultBefore=JSON.stringify([...ga.vault.files]);
-  check(gv.tasksState.scheduleView==="calendar" && gv.tasksState.period==="day" && gr.querySelector(".lubi-timeline")&&!gr.querySelector(".lubi-gantt-card"),"gantt integration: defaults to calendar day without persisting another default");
+  check(gv.tasksState.scheduleView==="list" && gv.tasksState.period==="day" && gr.querySelector(".lubi-planning-main .lubi-selected-day-list")&&!gr.querySelector(".lubi-gantt-card"),"gantt integration: defaults to approved MONO task-first list day without persisting another default");
   await switchMode("gantt");
   check(gr.querySelectorAll(".lubi-gantt-card").length===1 && !gr.querySelector(".lubi-week") && !gr.querySelector(".lubi-tasks-projects"),"gantt integration: alternate view occupies the same schedule region, not an added project panel");
   check(gr.querySelectorAll(".lubi-gantt-date").length===30 && gr.querySelector(".lubi-schedule-range").textContent==="9/1 – 9/30" && gr.querySelector(".lubi-topbar-left").textContent.includes("9/1"),"gantt integration: date header and shared context use the natural-month window");
@@ -1582,9 +1526,9 @@ console.log("data file now:", app.vault.files.get("任务/任务数据.json").sl
   const repeatSnapshot=JSON.stringify(gp.tasks.byId("g-repeat"));await gesture(bar("g-repeat"),3);
   check(JSON.stringify(gp.tasks.byId("g-repeat"))===repeatSnapshot&&!gr.querySelector(".lubi-gantt-bar.is-dragging"),"gantt integration: read-only repeat segments do not mutate rules through pointer gestures");
   // A failed task-file write restores the in-memory schedule too.
-  const modify=ga.vault.modify.bind(ga.vault),beforeFailure=JSON.stringify(gp.tasks.byId("g-parent"));ga.vault.modify=async(f,c)=>{if(f.path===gp.settings.taskFile)throw Error("synthetic task write failure");return modify(f,c)};
+  const processFile=ga.vault.process.bind(ga.vault),beforeFailure=JSON.stringify(gp.tasks.byId("g-parent"));ga.vault.process=async(f,c)=>{if(f.path===gp.settings.taskFile)throw Error("synthetic task write failure");return processFile(f,c)};
   await gesture(bar("g-parent"),2);
-  check(JSON.stringify(gp.tasks.byId("g-parent"))===beforeFailure&&O.notices.at(-1).includes("调整失败"),"gantt integration: failed write reports error and rolls back phantom in-memory dates");ga.vault.modify=modify;
+  check(JSON.stringify(gp.tasks.byId("g-parent"))===beforeFailure&&O.notices.at(-1).includes("调整失败"),"gantt integration: failed write reports error and rolls back phantom in-memory dates");ga.vault.process=processFile;
   // Schedule changed during pointer gesture: do not overwrite it on release.
   const oldBar=bar("g-single");setRect(oldBar);pointer(oldBar,"pointerdown",100);pointer(window,"pointermove",168);
   gp.tasks.byId("g-single").date="2026-09-28";pointer(window,"pointerup",168);await settle();
@@ -1601,9 +1545,9 @@ console.log("data file now:", app.vault.files.get("任务/任务数据.json").sl
   const anchor=gr.querySelector(".lubi-schedule-range").textContent;gr.querySelector('.lubi-gantt-date[data-date="2026-09-28"]').click();await settle();
   check(gv.tasksState.selectedDate==="2026-09-28"&&gr.querySelector(".lubi-schedule-range").textContent===anchor,"gantt integration: selecting an in-window date does not unexpectedly recenter it");
   await switchMode("calendar");check(gr.querySelector(".lubi-month-calendar")&&!gr.querySelector(".lubi-gantt-card")&&gv.tasksState.selectedDate==="2026-09-28"&&gv.tasksState.period==="month","gantt integration: switching back preserves selected day and shared month range");
-  const restarted=await gp.activateView("tasks",D); // Existing view retains its session; a fresh view still defaults to week.
+  const restarted=await gp.activateView("tasks",D); // Existing view retains its session; a fresh view returns to the approved list-day default.
   const newLeaf=ga.workspace.getLeaf();await newLeaf.setViewState({type:"lubi-dashboard",active:true});await settle();
-  check(newLeaf.view.tasksState.scheduleView==="calendar","gantt integration: a fresh view does not persist the last selected Gantt mode");
+  check(newLeaf.view.tasksState.scheduleView==="list" && newLeaf.view.tasksState.period==="day","gantt integration: a fresh view does not persist the last selected Gantt mode");
   check(JSON.stringify([...ga.vault.files].filter(([p])=>p.startsWith("日记/")))===journalBefore&&!gr.querySelector(".lubi-error"),"gantt integration: all planning gestures leave actual records untouched, with no render errors");
   gp.onunload();gv.containerEl.remove();newLeaf.view.containerEl.remove();
 }
@@ -1623,7 +1567,7 @@ console.log("data file now:", app.vault.files.get("任务/任务数据.json").sl
   check(row("dg-repeat")?.classList.contains("is-done") && row("dg-repeat")?.querySelector(".lubi-gantt-title")?.textContent === "每日重复" && !row("dg-repeat").querySelector(".lubi-gantt-title")?.textContent.includes("✓") && !bar("dg-repeat")?.querySelector(".lubi-gantt-bar-label")?.textContent.includes("✓"),"daily Gantt: completed names use strikethrough class without checkmarks");
   const ticks=[...root.querySelectorAll('.lubi-daily-gantt-tick')];
   check(ticks.length===25&&ticks[0].textContent==="00:00"&&ticks.at(-1).textContent==="24:00"&&root.querySelector('.lubi-gantt-table').firstElementChild.classList.contains('lubi-gantt-heading'),"daily Gantt: first row is a complete 00:00–24:00 time axis");
-  check(!!row('dg-unset')&&!row('dg-unset').querySelector('.lubi-gantt-bar')&&row('dg-unset').textContent.includes('未定时')&&!row('dg-record'),"daily Gantt: unset tasks do not fake 24-hour bars and actual records stay excluded");
+  check(!!root.querySelector('.lubi-daily-unset-chip')&&root.querySelector('.lubi-daily-unset').textContent.includes('未定时')&&!row('dg-unset')&&!row('dg-record'),"daily Gantt: unset tasks do not fake 24-hour bars and actual records stay excluded");
   check(bar('dg-point').classList.contains('is-point')&&!row('dg-point').querySelector('.lubi-gantt-handle')&&bar('dg-point').dataset.minutes==='0',"daily Gantt: unset estimate is a start marker, not an invented duration");
   check(!row('dg-late').querySelector('.is-editable,.lubi-gantt-handle')&&bar('dg-late').dataset.minutes==='60'&&bar('dg-repeat').classList.contains('is-done')&&!bar('dg-repeat').classList.contains('is-editable'),"daily Gantt: clipped plans and repeat dates are not silently resized or changed");
   check(JSON.stringify([...da.vault.files])===before,"daily Gantt: opening the view never writes data");

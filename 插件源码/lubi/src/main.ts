@@ -12,10 +12,14 @@ import { LubiSettingTab } from "./ui/settingsTab";
 import { Rec } from "./core/records";
 import { historyNames, validNameUses } from "./core/nameHistory";
 
+import { ProductService } from "./core/productService";
+import { ProductivityModal, ProductTab } from "./ui/productivity";
+
 export default class LubiPlugin extends Plugin {
   settings: LubiSettings = DEFAULT_SETTINGS;
   journal!: Journal;
   tasks!: Tasks;
+  product!: ProductService;
   /** 最近记录缓存：用于“接着记”；名称候选另行惰性读取全部历史。 */
   private recent: Rec[] = [];
   private nameRecords?: Promise<Rec[]>;
@@ -31,6 +35,7 @@ export default class LubiPlugin extends Plugin {
     await this.loadSettings();
     this.journal = new Journal(this.app, () => this.settings);
     this.tasks = new Tasks(this.app, () => this.settings);
+    this.product = new ProductService(this);
     this.tasks.onChange = () => this.refreshViews(false);
 
     this.registerView(VIEW_TYPE, (leaf) => new DashboardView(leaf, this));
@@ -46,6 +51,9 @@ export default class LubiPlugin extends Plugin {
     this.addCommand({ id: "migrate", name: "迁移旧版数据", callback: () => void this.runMigration(true) });
     // Preserve the existing command ID so assigned export hotkeys continue to work.
     this.addCommand({ id: "export-csv", name: "导出数据 JSON", callback: () => void this.exportJson() });
+
+    const productCommands: [ProductTab, string][] = [["cost", "投入与成果"], ["review", "周复盘行动"], ["backlog", "整理逾期任务"], ["timer", "实时计时"], ["restore", "隔离数据恢复"]];
+    for (const [tab, name] of productCommands) this.addCommand({ id: "product-" + tab, name, callback: () => this.openProduct(tab) });
 
     // 日记或任务文件被外部修改 → 刷新
     this.registerEvent(this.app.vault.on("modify", (f) => this.onFileChange(f.path)));
@@ -76,6 +84,7 @@ export default class LubiPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     const raw = (await this.loadData()) as Partial<LubiSettings> | null;
     this.settings = { ...DEFAULT_SETTINGS, ...(raw || {}) };
+    if (raw?.aiApiKey) new Notice("检测到旧版明文 AI Key：本次会话暂时可用。保存任意插件设置后将从设置文件移除；之后只在当前会话填写。请检查历史备份／同步副本。", 12000);
     if (!Array.isArray(this.settings.categories) || !this.settings.categories.length) this.settings.categories = DEFAULT_CATEGORIES.map((c) => ({ ...c }));
     // 旧数据没有 paletteVersion：按 v1 处理，把仍是旧默认值的分类色迁移到 v1.4 色板（自定义颜色不动）。
     if (raw && raw.paletteVersion === undefined) this.settings.paletteVersion = 1;
@@ -90,10 +99,13 @@ export default class LubiPlugin extends Plugin {
   }
 
   private persistSettings(): Promise<void> {
-    const next = this.settingsWrite.catch(() => undefined).then(() => this.saveData(this.settings));
+    const snapshot = JSON.parse(JSON.stringify({ ...this.settings, aiApiKey: "" }));
+    const next = this.settingsWrite.catch(() => undefined).then(() => this.saveData(snapshot));
     this.settingsWrite = next;
     return next;
   }
+
+  openProduct(tab: ProductTab = "cost"): void { new ProductivityModal(this, tab).open(); }
 
   openSettings(): void {
     const s = (this.app as unknown as { setting?: { open: () => void; openTabById: (id: string) => void } }).setting;

@@ -36,7 +36,7 @@ for(const [scope,html] of quietCases) {
  parent.dispatchEvent(new window.MouseEvent('pointermove',{bubbles:true,clientX:200,clientY:30,buttons:0}));await new Promise(r=>setTimeout(r,300));
  check(document.querySelector('.lubi-tip')?.textContent==='父级详情','parent detail is preserved outside quiet control: '+html);host.remove();await tick();
 }
-for(const [cls,hint] of [['lubi-task-start','填写实际用时，保存后完成任务'],['lubi-task-unlogged','按计划补记一条待确认记录']]) {
+for(const [cls,hint] of [['lubi-task-start','记录本人实际，可选择完成'],['lubi-task-unlogged','按计划补记待确认记录，不改变完成状态']]) {
  const host=document.body.createDiv({cls:'lubi-root'}),control=host.createEl('button',{cls,attr:{'aria-label':'具体任务的完整操作名称'}});await tick();
  control.focus();await tick();check(document.querySelector('.lubi-tip')?.textContent===hint,'short operational hint: '+cls);control.blur();
  check(document.getElementById(control.getAttribute('aria-labelledby'))?.textContent==='具体任务的完整操作名称','short hint retains full accessible name: '+cls);host.remove();await tick();
@@ -137,7 +137,7 @@ view.show('today',D);await tick();
 const planMeta=root.querySelector('.lubi-plan-task-list .lubi-task-meta-time');
 check(planMeta?.textContent==='09:00'&&planMeta.parentElement.textContent.includes('09:00 · 1h'),'daily plan preserves metadata text and separates time styling');
 const progress=root.querySelector('.lubi-plan-progress');
-check(progress?.getAttribute('aria-valuetext')===`${progress.getAttribute('aria-valuenow')}/${progress.getAttribute('aria-valuemax')} 已完成或已有记录`,'daily progress exposes the unchanged completion count');
+check(progress?.getAttribute('aria-valuetext')===`${progress.getAttribute('aria-valuenow')}/${progress.getAttribute('aria-valuemax')} 已完成`,'daily progress exposes the unchanged completion count');
 const shortHint=root.querySelector('.lubi-task-start');shortHint.focus();await tick();check(document.querySelector('.lubi-tip')?.classList.contains('is-label'),'short button hint uses compact presentation');shortHint.blur();
 root.querySelector('.lubi-block').focus();await tick();check(!!document.querySelector('.lubi-task-tip-title')&&!document.querySelector('.lubi-tip').classList.contains('is-label'),'task detail card keeps its richer presentation');root.querySelector('.lubi-block').blur();
 const before=JSON.stringify([...app.vault.files]);

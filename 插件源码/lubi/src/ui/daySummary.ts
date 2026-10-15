@@ -1,3 +1,4 @@
+import { categoryTone } from "./monochrome";
 // 计划日历日视图的分类分布与计划进度卡片。
 import type LubiPlugin from "../main";
 import { PENDING_KEY, Rec } from "../core/records";
@@ -12,7 +13,7 @@ export function renderDayPlan(side: HTMLElement, date: string, total: number, do
   const head = card.createDiv({ cls: "lubi-panel-head" });
   el(head, "h3", "lubi-panel-title", date === todayStr() ? "今日计划" : "当天计划");
   head.createSpan({ cls: "lubi-muted", text: `${done}/${total} 已做` });
-  const progress = card.createDiv({ cls: "lubi-plan-progress", attr: { role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(total || 1), "aria-valuenow": String(done), "aria-valuetext": `${done}/${total} 已完成或已有记录`, "aria-label": "计划完成度（已完成或已有记录）" } });
+  const progress = card.createDiv({ cls: "lubi-plan-progress", attr: { role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(total || 1), "aria-valuenow": String(done), "aria-valuetext": `${done}/${total} 已完成`, "aria-label": "计划完成度（已完成）" } });
   progress.createDiv({ cls: "lubi-plan-progress-fill" }).style.width = `${total ? Math.round(done / total * 100) : 0}%`;
   const details = card.createEl("details", { cls: "lubi-fold lubi-plan-task-details" });
   details.open = true;
@@ -34,7 +35,7 @@ export function renderDayDistribution(plugin: LubiPlugin, side: HTMLElement, rec
     total += r.minutes;
   }
   const wrap = card.createDiv({ cls: "lubi-donut-wrap" });
-  const slices = [...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([name, v]) => ({ label: name, value: v, color: categoryOf(plugin.settings, name).color }));
+  const slices = [...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([name, v]) => ({ label: name, value: v, color: categoryTone(plugin.settings, name) }));
   const covered = dayTimeStats(recs).coveredMinutes;
   donut(wrap, slices, fmtHours(total), recs.some(r => r.extra[PENDING_KEY] === "实际开始未核对") ? "覆盖待核对" : `覆盖 ${Math.round((covered / 1440) * 100)}%`);
   const list = wrap.createDiv({ cls: "lubi-legend" });
@@ -43,7 +44,7 @@ export function renderDayDistribution(plugin: LubiPlugin, side: HTMLElement, rec
     const li = list.createDiv({ cls: "lubi-legend-row lubi-legend-bar" });
     li.style.setProperty("--pct", `${Math.round((s.value / total) * 100)}%`);
     li.style.setProperty("--dot", s.color);
-    catDot(li, categoryOf(plugin.settings, s.label));
+    catDot(li, categoryOf(plugin.settings, s.label), s.color);
     li.createSpan({ cls: "lubi-legend-name", text: s.label });
     li.createSpan({ cls: "lubi-legend-val", text: fmtHours(s.value) });
     li.createSpan({ cls: "lubi-muted lubi-legend-pct", text: `${Math.round((s.value / total) * 100)}%` });

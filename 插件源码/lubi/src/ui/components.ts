@@ -75,15 +75,15 @@ export function segmented<T extends string>(
   return wrap;
 }
 
-export function catDot(parent: HTMLElement, cat: CategoryDef): HTMLElement {
+export function catDot(parent: HTMLElement, cat: CategoryDef, tone = "var(--color-ink)"): HTMLElement {
   const d = parent.createSpan({ cls: "lubi-dot" });
-  d.style.setProperty("--dot", cat.color);
+  d.style.setProperty("--dot", tone);
   return d;
 }
 
 export function catChip(parent: HTMLElement, cat: CategoryDef, text?: string): HTMLElement {
   const c = parent.createSpan({ cls: "lubi-chip" });
-  c.style.setProperty("--chip", cat.color);
+  c.style.setProperty("--chip", "var(--color-ink)");
   icon(c, cat.icon, "lubi-icon lubi-chip-icon");
   c.createSpan({ text: text ?? cat.name });
   return c;

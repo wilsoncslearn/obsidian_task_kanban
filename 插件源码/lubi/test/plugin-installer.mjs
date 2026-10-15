@@ -8,7 +8,7 @@ import * as O from './mock-obsidian.js';
 const originalLoad = Module._load;
 Module._load = function(id,...args) { return id==='obsidian' ? O : originalLoad.call(this,id,...args); };
 const require=createRequire(import.meta.url), { installPluginUpdate,checkPluginUpdate }=require('./update-core.cjs');
-const productionPath=process.env.LUBI_TEST_PLUGIN||new URL('./plugin.cjs',import.meta.url);
+const productionPath=process.env.LUBI_TEST_PLUGIN ? require.resolve(process.env.LUBI_TEST_PLUGIN) : new URL('./plugin.cjs',import.meta.url);
 const productionSource=await fs.readFile(productionPath,'utf8');
 const wrappedModule={exports:{}};
 new Function('require','module','exports',productionSource)(id=>id==='obsidian'?O:require(id),wrappedModule,wrappedModule.exports);

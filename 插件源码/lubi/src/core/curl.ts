@@ -1,29 +1,41 @@
-type CurlOptions = { method?: "GET" | "POST"; headers?: Record<string, string>; body?: string; maxTime?: number };
+import type { spawn as nodeSpawn } from 'node:child_process';
+type CurlOptions = { method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: string; maxTime?: number };
 
-/** 桌面端网络兜底：某些自签名/非标准端口服务可被 curl 访问，但会被 Electron 关闭连接。 */
+export function validateAiUrl(value: string): string {
+  const u = new URL(value);
+  if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) throw new Error('AI 地址只支持不含账号密码的 HTTP(S)');
+  if (u.protocol === 'http:' && !['localhost','127.0.0.1','[::1]'].includes(u.hostname)) throw new Error('远程 AI 服务必须使用 HTTPS；HTTP 仅限本机回环地址');
+  return value;
+}
+const quote = (s: string) => '"' + s.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t') + '"';
+/** curl verifies TLS. Credentials and request content go through stdin, never process arguments. */
 export function curlJson(url: string, options: CurlOptions = {}): Promise<{ status: number; json: unknown }> {
   return new Promise((resolve, reject) => {
     try {
-      const nodeRequire = (0, eval)("require") as (name: string) => { spawn: (command: string, args: string[], options: Record<string, unknown>) => { stdout: AsyncIterable<Uint8Array>; stderr: AsyncIterable<Uint8Array>; on: (event: string, cb: (...args: unknown[]) => void) => void } };
-      const { spawn } = nodeRequire("node:child_process");
-      const command = /win/i.test(navigator.userAgent) ? "curl.exe" : "curl";
-      const args = ["--silent", "--show-error", "--insecure", "--max-time", String(options.maxTime ?? 45), "--write-out", "\n__LUBI_STATUS__:%{http_code}", "--request", options.method || "GET"];
-      for (const [key, value] of Object.entries(options.headers || {})) args.push("--header", `${key}: ${value}`);
-      if (options.body !== undefined) args.push("--data-binary", options.body);
-      args.push(url);
-      const child = spawn(command, args, { windowsHide: true, shell: false });
-      let out = "";
-      let err = "";
-      void (async () => { for await (const chunk of child.stdout) out += new TextDecoder().decode(chunk); })();
-      void (async () => { for await (const chunk of child.stderr) err += new TextDecoder().decode(chunk); })();
-      child.on("error", (e) => reject(new Error(`无法启动 curl：${String(e)}`)));
-      child.on("close", (code) => {
-        const marker = out.lastIndexOf("\n__LUBI_STATUS__:");
+      validateAiUrl(url);
+      const nodeRequire = (0, eval)('require') as (name: string) => { spawn: typeof nodeSpawn };
+      const { spawn } = nodeRequire('node:child_process');
+      const config = [`url = ${quote(url)}`, `request = ${quote(options.method || 'GET')}`];
+      for (const [k,v] of Object.entries(options.headers || {})) {
+        if (/[\r\n:]/.test(k) || /[\r\n]/.test(v)) throw new Error('请求头无效');
+        config.push(`header = ${quote(`${k}: ${v}`)}`);
+      }
+      if (options.body !== undefined) config.push(`data = ${quote(options.body)}`);
+      const child = spawn(/win/i.test(navigator.userAgent) ? 'curl.exe' : 'curl', ['--disable','--silent','--show-error','--proto','=http,https','--max-time',String(options.maxTime ?? 45),'--write-out','\n__LUBI_STATUS__:%{http_code}','--config','-'], { windowsHide: true, shell: false });
+      let out = ''; let failed = false;
+      child.stdout.setEncoding('utf8');
+      child.stdout.on('data', (chunk: string) => { out += chunk; if (out.length > 8 * 1024 * 1024) { failed = true; child.kill(); } });
+      // Drain stderr but never display server content, URLs or credentials in error notices.
+      child.stderr.resume();
+      child.on('error', () => reject(new Error('无法启动 curl，请检查桌面网络环境')));
+      child.stdin.on('error', () => reject(new Error('curl 请求写入失败')));
+      child.stdin.end(config.join('\n') + '\n');
+      child.on('close', code => {
+        const marker = out.lastIndexOf('\n__LUBI_STATUS__:');
         const status = marker >= 0 ? Number(out.slice(marker + 17).trim()) : 0;
-        const text = marker >= 0 ? out.slice(0, marker) : out;
-        if (code !== 0 || !status) { reject(new Error(err.trim() || `curl 退出码 ${code ?? "未知"}`)); return; }
-        try { resolve({ status, json: JSON.parse(text) }); } catch { reject(new Error("curl 返回的不是 JSON")); }
+        if (failed || code !== 0 || !status) { reject(new Error(`安全网络请求失败（curl ${code ?? '未知'}）；请核对 HTTPS 证书和连接，不会跳过证书验证`)); return; }
+        try { resolve({ status, json: JSON.parse(out.slice(0, marker)) }); } catch { reject(new Error('接口返回的不是 JSON')); }
       });
-    } catch (e) { reject(e instanceof Error ? e : new Error(String(e))); }
+    } catch (e) { reject(e instanceof Error ? e : new Error('网络请求失败')); }
   });
 }

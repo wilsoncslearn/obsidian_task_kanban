@@ -128,7 +128,7 @@ fs.writeFileSync(new URL("estimate-comparison.html",out),page("estimate-comparis
 view.show("tasks"); await tick(200);
 const rowEl = [...root.querySelectorAll(".lubi-task")].find((x) => x.textContent.includes("线性代数"));
 rowEl.click(); await tick();
-const tm = O.openModals.at(-1); tm.modalEl.classList.add("modal"); tm.titleEl.classList.add("modal-title"); tm.contentEl.classList.add("modal-content");
+const tm = O.openModals.at(-1); const locationInput=tm.contentEl.querySelector("[data-task-location]");locationInput.value="图书馆（合成示例）";locationInput.dispatchEvent(new window.Event("input",{bubbles:true})); tm.modalEl.classList.add("modal"); tm.titleEl.classList.add("modal-title"); tm.contentEl.classList.add("modal-content");
 fs.writeFileSync(new URL("modal-task.html", out), page("modal-task", `<div class="lubi-root" style="height:100vh;background:var(--background-secondary)"></div><div class="modal-bg"></div>${freeze(tm.modalEl)}`)); tm.close();
 
 const wrapModal = (mm, name) => { mm.modalEl.classList.add("modal"); mm.titleEl.classList.add("modal-title"); mm.contentEl.classList.add("modal-content");

@@ -1,3 +1,4 @@
+import { categoryTone } from "./monochrome";
 import { Notice } from "obsidian";
 import type LubiPlugin from "../main";
 import { dailyGanttRows } from "../core/gantt";
@@ -19,13 +20,25 @@ export function renderDailyGantt(plugin: LubiPlugin, card: HTMLElement, date: st
   }
   const rows = dailyGanttRows(plugin.tasks.all, date);
   if (!rows.length) { table.createDiv({ cls: "lubi-gantt-empty lubi-muted", text: "这一天没有已安排的规划任务", attr: { role: "status" } }); return; }
-  for (const group of projectRows(plugin, rows)) {
+  const untimed = rows.filter(row => row.start === null);
+  if (untimed.length) {
+    const strip = card.createDiv({ cls: "lubi-daily-unset" });
+    strip.createSpan({ cls: "lubi-daily-unset-label", text: `未定时（${untimed.length}）` });
+    for (const row of untimed) {
+      const chip = strip.createEl("button", { cls: "lubi-daily-unset-chip", text: row.task.title, attr: { type: "button" } });
+      chip.addEventListener("click", () => { const current = plugin.tasks.byId(row.task.id); if (current) edit(current); else { new Notice("任务已不存在", 5000); rerender(); } });
+    }
+    table.parentElement?.before(strip);
+  }
+  const timedRows = rows.filter(row => row.start !== null);
+  if (!timedRows.length) { table.createDiv({ cls: "lubi-gantt-empty lubi-muted", text: "这一天没有已定时的规划任务", attr: { role: "status" } }); return; }
+  for (const group of projectRows(plugin, timedRows)) {
     const groupHost = projectHeading(table, group);
     for (const row of group.rows) {
     const task = row.task;
     const open = () => { const current = plugin.tasks.byId(task.id); if (current) edit(current); else { new Notice("任务已不存在", 5000); rerender(); } };
     const line = groupHost.createDiv({ cls: "lubi-gantt-row", attr: { role: "row", "data-task-id": task.id } });
-    line.style.setProperty("--chip", categoryOf(plugin.settings, task.category).color);
+    line.style.setProperty("--chip", categoryTone(plugin.settings, task.category));
     line.toggleClass("is-done", row.done);
     const name = line.createDiv({ cls: "lubi-gantt-name", attr: { role: "rowheader" } });
     name.style.setProperty("--gantt-indent", "8px");
@@ -36,7 +49,6 @@ export function renderDailyGantt(plugin: LubiPlugin, card: HTMLElement, date: st
     const grid = plot.createDiv({ cls: "lubi-gantt-grid", attr: { "aria-hidden": "true" } });
     for (let hour = 0; hour < 24; hour++) grid.createDiv();
     plot.createDiv({ cls: "lubi-gantt-today", attr: { "aria-hidden": "true" } });
-    if (row.start === null) { plot.createSpan({ cls: "lubi-daily-gantt-unset lubi-muted", text: "未定时" }); continue; }
     const bar = plot.createDiv({ cls: "lubi-gantt-bar", attr: { role: "button", tabindex: "0", "data-start": String(row.start), "data-minutes": String(row.minutes) } });
     bar.toggleClass("is-done", row.done); bar.toggleClass("is-point", row.minutes === 0);
     const label = bar.createSpan({ cls: "lubi-gantt-bar-label" });
@@ -46,8 +58,8 @@ export function renderDailyGantt(plugin: LubiPlugin, card: HTMLElement, date: st
       label.setText(minutes > 0 ? fmtDuration(minutes) : "未填预计");
       fitGanttLabel(bar);
     };
-    place(row.start, row.minutes);
-    const end = row.start + row.minutes;
+    place(row.start!, row.minutes);
+    const end = row.start! + row.minutes;
     const endText = end === 1440 ? "24:00" : `${end > 1440 ? `+${Math.floor(end / 1440)} 天 ` : ""}${minToHM(end)}`;
     infoTip(bar, task.title, [date, row.minutes ? `${task.start}–${endText} · 预计 ${fmtDuration(row.minutes)}` : `${task.start} · 未填预计`, row.done ? "已完成" : "未完成", ...(end > 1440 ? ["跨午夜计划，仅展示本日部分"] : []), ...(task.repeat.kind !== "none" ? ["重复任务"] : [])], task.notes);
     let suppressClick = false;

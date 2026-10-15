@@ -3,7 +3,7 @@ import type LubiPlugin from "../main";
 import { CategoryDef, DEFAULT_CATEGORIES } from "../settings";
 import { accentConflicts, parseColor, resolveDefault, RGB } from "../core/color";
 import { ConfirmModal } from "./modals";
-import { curlJson } from "../core/curl";
+import { curlJson, validateAiUrl } from "../core/curl";
 import { iconButton, tip } from "./components";
 import { taskImportPrompt } from "../core/taskImport";
 import { modelPicker } from "./modelPicker";
@@ -77,11 +77,7 @@ export class LubiSettingTab extends PluginSettingTab {
       return t.setValue(s.backupFolder).onChange((v) => { s.backupFolder = v.trim() || "备份"; save(); });
     });
     // Planning calendars always show the full day; retain legacy hour fields only in saved data.
-    new Setting(basics).setName("完成任务时自动记一条").setDesc("按计划时间生成待确认记录，可核对和撤销").addToggle((t) => {
-      t.toggleEl.setAttribute("aria-label", "完成任务时自动记一条");
-      t.toggleEl.addClass("lubi-quiet-action");
-      return t.setValue(s.promptLogOnComplete).onChange((v) => { s.promptLogOnComplete = v; save(); });
-    });
+    new Setting(basics).setName("完成与时间记录").setDesc("标记完成只修改任务状态；记录实际和按计划补记由你明确选择。旧自动记录设置不再触发写入或删除。");
     new Setting(basics).setName("每日可用小时").setDesc("用于计划负载计算，不代表实际投入").addText((t) => {
       t.inputEl.setAttribute("aria-label", "每日可用小时");
       return t.setPlaceholder("8").setValue(String(s.dailyCapacityHours ?? 8)).onChange((v) => { s.dailyCapacityHours = clamp(Number(v), 1, 24, 8); save(); });
@@ -133,7 +129,7 @@ export class LubiSettingTab extends PluginSettingTab {
     const json = section("JSON 任务导入");
     json.addClass("lubi-settings-json-import");
     const promptValue = () => taskImportPrompt(s.categories.filter(c => c.kind === "time").map(c => c.name));
-    const copy = new Setting(json).setName("系统提示词").setDesc("复制给外部 AI，与它讨论后让它生成导入 JSON；不包含接口、密钥或历史任务。");
+    const copy = new Setting(json).setName("系统提示词").setDesc("复制给外部 AI，与它讨论后生成含可选地点的导入 JSON；未明确地点时留空。不包含接口、密钥或历史任务。");
     copy.settingEl.addClass("lubi-setting-stacked");
     const prompt = json.createEl("textarea", { cls: "lubi-json-prompt", attr: { readonly: "", "aria-label": "JSON 任务导入系统提示词", spellcheck: "false" } });
     prompt.value = promptValue();
@@ -165,7 +161,7 @@ export class LubiSettingTab extends PluginSettingTab {
       choices = modelPicker(t.inputEl, s.aiModel, value => { s.aiModel = value;updateSummary();save(); });
       return t;
     });
-    const key = new Setting(ai).setName("API Key").setDesc("本地 Ollama 可留空，云端接口按服务商要求填写");
+    const key = new Setting(ai).setName("API Key").setDesc("只在当前会话保存；重启后需重新填写。本地 Ollama 可留空");
     key.settingEl.addClass("lubi-setting-stacked");
     key.addText((t) => { t.inputEl.type = "password"; t.inputEl.setAttribute("aria-label", "AI API Key"); t.inputEl.dataset.setting = "ai-key"; return t.setValue(s.aiApiKey).onChange((v) => { s.aiApiKey = v.trim(); save(); }); });
     const aiActions = new Setting(ai);
@@ -180,7 +176,7 @@ export class LubiSettingTab extends PluginSettingTab {
       finally { fetchingModels = false;b.setDisabled(false); }
     }));
     aiActions.addButton((b) => b.setButtonText("测试连接").onClick(() => void testAiConnection(s)));
-    ai.createEl("p", { cls: "lubi-settings-note", text: "API Key 仍以明文保存在本地插件设置中，请勿共享该设置文件。" });
+    ai.createEl("p", { cls: "lubi-settings-note", text: "新填写的 Key 不写入设置文件。旧版明文 Key 在下次保存设置时移除；历史备份／同步副本需自行清理。远程接口必须 HTTPS，证书异常将拒绝连接。" });
 
     const expenses = section("支出类别");
     new Setting(expenses).setName("类别列表").setDesc("逗号分隔").addTextArea((t) => { t.inputEl.setAttribute("aria-label", "支出类别"); return t.setValue(s.expenseTypes.join(", ")).onChange((v) => { s.expenseTypes = v.split(/[,，]/).map((x) => x.trim()).filter(Boolean); if (!s.expenseTypes.length) s.expenseTypes = ["其他"]; save(); }); });
@@ -204,6 +200,7 @@ export class LubiSettingTab extends PluginSettingTab {
 }
 
 function modelsEndpoint(endpoint: string): string {
+  validateAiUrl(endpoint);
   const value = endpoint.trim().replace(/\/+$/, "");
   if (/\/chat\/completions$/i.test(value)) return value.replace(/\/chat\/completions$/i, "/models");
   if (/\/generate$|\/api\/chat$/i.test(value)) return value.replace(/\/(?:generate|api\/chat)$/i, "/api/tags");
@@ -241,6 +238,7 @@ async function testAiConnection(settings: { aiEndpoint: string; aiApiKey: string
   } catch (e) {
     // 一些 OpenAI 兼容网关禁用了 GET /models，但聊天接口本身可用；用当前模型做一次极短请求兜底测试。
     try {
+      validateAiUrl(settings.aiEndpoint);
       const endpoint = settings.aiEndpoint.trim().replace(/\/+$/, "").replace(/\/chat\/completions$/i, "") + "/chat/completions";
       let response: { status: number };
       try {

@@ -1,3 +1,4 @@
+import { categoryTone } from "./monochrome";
 import { Notice } from "obsidian";
 import type LubiPlugin from "../main";
 import { explicitSpan, GanttAction, ganttPatch, GanttPatch, ganttRows, GanttSegment } from "../core/gantt";
@@ -65,7 +66,7 @@ export function renderGantt(plugin: LubiPlugin, card: HTMLElement, days: string[
     };
     const line = groupHost.createDiv({ cls: "lubi-gantt-row", attr: { role: "row", "data-task-id": t.id } });
     line.toggleClass("is-done", t.repeat.kind === "none" && t.status === "done");
-    line.style.setProperty("--chip", categoryOf(plugin.settings, t.category).color);
+    line.style.setProperty("--chip", categoryTone(plugin.settings, t.category));
     const name = line.createDiv({ cls: "lubi-gantt-name", attr: { role: "rowheader" } });
     name.style.setProperty("--gantt-indent", `${8 + Math.min(row.depth, 3) * 10}px`);
     if (row.hasChildren) {

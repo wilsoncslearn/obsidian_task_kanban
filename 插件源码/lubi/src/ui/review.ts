@@ -1,3 +1,4 @@
+import { categoryTone } from "./monochrome";
 // 回顾页：周 / 月 / 年 汇总。柳比歇夫法的核心是"月末算账"。
 
 import type LubiPlugin from "../main";
@@ -140,7 +141,7 @@ export async function renderReview(plugin: LubiPlugin, host: HTMLElement, state:
   if (isEmpty) legend.createSpan({ cls: "lubi-muted lubi-review-empty-note", text: "本期暂无记录" });
   for (const c of cats) {
     const li = legend.createSpan({ cls: "lubi-chart-legend-item" });
-    catDot(li, categoryOf(plugin.settings, c));
+    catDot(li, categoryOf(plugin.settings, c), categoryTone(plugin.settings, c));
     li.createSpan({ text: c });
   }
   const bucketTotals = buckets.map((b) => b.dates.flatMap((d) => data.get(d) || []).filter((r) => r.minutes > 0).reduce((s, r) => s + r.minutes, 0));
@@ -191,8 +192,8 @@ export async function renderReview(plugin: LubiPlugin, host: HTMLElement, state:
         if (!v) continue;
         const seg = stack.createDiv({ cls: `lubi-bar-seg ${isRest(c) ? "is-rest" : ""}`.trim() });
         seg.style.flexBasis = `${(v / bt) * 100}%`;
-        seg.style.setProperty("--chip", categoryOf(plugin.settings, c).color);
-        seg.style.background = categoryOf(plugin.settings, c).color;
+        seg.style.setProperty("--chip", categoryTone(plugin.settings, c));
+        seg.style.background = categoryTone(plugin.settings, c);
       }
       const val = stack.createDiv({ cls: "lubi-bar-val", text: fmtHours(bt) });
       if (stats.invalid) {
@@ -229,7 +230,7 @@ export async function renderReview(plugin: LubiPlugin, host: HTMLElement, state:
       line.className = "lubi-tip-row";
       const d = document.createElement("span");
       d.className = "lubi-dot";
-      d.style.setProperty("--dot", categoryOf(plugin.settings, c).color);
+      d.style.setProperty("--dot", categoryTone(plugin.settings, c));
       line.append(d, `${c} ${fmtHours(v)}`, ` · ${Math.round((v / bt) * 100)}%`);
       rows.push(line);
     }
@@ -275,14 +276,14 @@ export async function renderReview(plugin: LubiPlugin, host: HTMLElement, state:
     const v = sum(timed, c);
     const row = byCat.createDiv({ cls: "lubi-row-bar" });
     const head = row.createDiv({ cls: "lubi-row-bar-head" });
-    catDot(head, categoryOf(plugin.settings, c));
+    catDot(head, categoryOf(plugin.settings, c), categoryTone(plugin.settings, c));
     head.createSpan({ cls: "lubi-legend-name", text: c });
     head.createSpan({ cls: "lubi-legend-val", text: fmtHours(v) });
     head.createSpan({ cls: "lubi-muted lubi-legend-pct", text: `${Math.round((v / total) * 100)}%` });
     const track = row.createDiv({ cls: "lubi-track" });
     const fill = track.createDiv({ cls: "lubi-fill" });
     fill.style.width = `${(v / total) * 100}%`;
-    fill.style.background = categoryOf(plugin.settings, c).color;
+    fill.style.background = categoryTone(plugin.settings, c);
   }
 
   const top = grid.createDiv({ cls: "lubi-section lubi-review-top" });
@@ -302,14 +303,14 @@ export async function renderReview(plugin: LubiPlugin, host: HTMLElement, state:
     const row = top.createDiv({ cls: "lubi-row-bar" });
     const head = row.createDiv({ cls: "lubi-row-bar-head" });
     const cat = categoryOf(plugin.settings, v.cat);
-    catDot(head, cat);
+    catDot(head, cat, categoryTone(plugin.settings, cat.name));
     head.createSpan({ cls: "lubi-legend-name", text: k.split("·").slice(1).join("·") });
     head.createSpan({ cls: "lubi-muted lubi-top-count", text: `${v.n} 次` });
     head.createSpan({ cls: "lubi-legend-val", text: fmtHours(v.min) });
     const track = row.createDiv({ cls: "lubi-track" });
     const fill = track.createDiv({ cls: "lubi-fill" });
     fill.style.width = `${(v.min / topMax) * 100}%`;
-    fill.style.background = cat.color;
+    fill.style.background = categoryTone(plugin.settings, cat.name);
   }
 
   const sp = grid.createDiv({ cls: "lubi-section" });

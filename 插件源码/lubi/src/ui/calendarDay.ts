@@ -1,5 +1,6 @@
+import { categoryTone } from "./monochrome";
 // 日历·日：24h 时间轴（实线 = 记录，虚线 = 当天有开始时间的计划）+ 右侧当天分布 / 空白时段 / 当天任务下拉清单。
-// 计划展示：点计划块 = 按实际时间记一条并完成任务；也可直接取消当天计划。
+// 计划展示：点计划块 = 记本人用时，是否同时完成由记录窗口明确选择；可取消当天计划。
 
 import { hideTip } from "./tooltips";
 import { positionDragReadout } from "./dragReadout";
@@ -30,10 +31,10 @@ interface Lane {
   lanes: number;
 }
 
-export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, date: string, rerender: () => void, renderPlans: (side: HTMLElement, records: Rec[]) => void): Promise<void> {
+export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, date: string, rerender: () => void, renderPlans: (side: HTMLElement, records: Rec[]) => void, sourceRows?: ParsedLine[]): Promise<void> {
   host.empty();
   host.addClass("lubi-today");
-  const rows = await plugin.journal.read(date);
+  const rows = sourceRows || await plugin.journal.read(date);
   const timed = rows.filter((r) => r.rec.minutes > 0).sort((a, b) => hmToMin(a.rec.start) - hmToMin(b.rec.start));
   const money = rows.filter((r) => r.rec.minutes <= 0);
   const stats = dayTimeStats(timed.map((row) => row.rec));
@@ -47,7 +48,7 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
   const top = host.createDiv({ cls: "lubi-today-top" });
   if (!plugin.settings.onboardingDone && plugin.journal.dates().length === 0) {
     const hint = top.createDiv({ cls: "lubi-first-record" });
-    hint.createSpan({ cls: "lubi-muted", text: "点击右上方「新建任务」，完成时填写实际用时。" });
+    hint.createSpan({ cls: "lubi-muted", text: "做完打勾；花了时间点「记用时」。完成和记时分开保存。" });
     iconButton(hint, "x", "不再显示入门提示", async () => {
       const previous = plugin.settings.onboardingDone;
       plugin.settings.onboardingDone = true;
@@ -82,21 +83,24 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
   const readout = tlWrap.createSpan({ cls: "lubi-drag-readout", attr: { role: "status", "aria-live": "polite" } });
   readout.hidden = true;
   const tl = scroller.createDiv({ cls: `lubi-timeline ${money.length ? "has-rail" : ""}`.trim(), attr: { tabindex: "0" } });
-  tl.style.height = `${24 * HOUR_PX + DAY_START_GUTTER_PX + DAY_END_GUTTER_PX}px`;
+  // Keep the tuned hour spacing; the fixed-height scroller (styles.css) scrolls through the full day.
+  const hourPx = HOUR_PX;
+  const PX_PER_MIN = hourPx / 60;
+  tl.dataset.hourPx = String(hourPx);
+  tl.style.height = `${24 * hourPx + DAY_START_GUTTER_PX + DAY_END_GUTTER_PX}px`;
   tl.style.setProperty("--lubi-day-start-gutter", `${DAY_START_GUTTER_PX}px`);
   const gutter = tl.createDiv({ cls: "lubi-tl-gutter" });
-
   const hourLabels: HTMLElement[] = [];
   for (let h = 0; h <= 24; h++) {
     const line = tl.createDiv({ cls: `lubi-tl-line ${h === 0 ? "is-first" : h === 24 ? "is-day-end" : ""}`.trim() });
-    line.style.top = `${DAY_START_GUTTER_PX + h * HOUR_PX}px`;
+    line.style.top = `${DAY_START_GUTTER_PX + h * hourPx}px`;
     if (h < 24) {
       const half = tl.createDiv({ cls: "lubi-tl-line lubi-tl-line-half" });
-      half.style.top = `${DAY_START_GUTTER_PX + (h + 0.5) * HOUR_PX}px`;
+      half.style.top = `${DAY_START_GUTTER_PX + (h + 0.5) * hourPx}px`;
     }
     const edgeClass = h === 0 ? " is-day-start" : h === 24 ? " is-day-end" : "";
     const lab = gutter.createSpan({ cls: `lubi-hour-label${edgeClass}`, text: `${String(h).padStart(2, "0")}:00` });
-    lab.style.top = `${DAY_START_GUTTER_PX + h * HOUR_PX}px`;
+    lab.style.top = `${DAY_START_GUTTER_PX + h * hourPx}px`;
     hourLabels[h] = lab;
   }
   const canvas = tl.createDiv({ cls: "lubi-tl-canvas" });
@@ -167,7 +171,7 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
       nl.style.top = `${Math.max(DAY_START_GUTTER_PX + 24, DAY_START_GUTTER_PX + nowMin * PX_PER_MIN)}px`;
     } else if (nowMin > 1440 - 30) {
       nl.addClass("is-near-day-end");
-      nl.style.top = `${Math.min(DAY_START_GUTTER_PX + 24 * HOUR_PX - 24, DAY_START_GUTTER_PX + nowMin * PX_PER_MIN)}px`;
+      nl.style.top = `${Math.min(DAY_START_GUTTER_PX + 24 * hourPx - 24, DAY_START_GUTTER_PX + nowMin * PX_PER_MIN)}px`;
     }
   }
 
@@ -207,9 +211,8 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
 
   // ---------- 计划层：当天有开始时间、还没完成的任务，画在记录右侧的虚线列 ----------
   const planned = dayTasks(plugin, date);
-  // 已经有关联记录的计划（比如用 ▶ 记过、还没勾完成）不再画虚线块，避免同一件事出现两次
-  const loggedTasks = new Set(rows.map((r) => r.rec.task).filter((id): id is string => !!id));
-  const openPlans = planned.filter((t) => !plugin.tasks.isDoneOn(t, date) && !loggedTasks.has(t.id));
+  // A partial personal record does not mean its planned task is complete.
+  const openPlans = planned.filter((t) => !plugin.tasks.isDoneOn(t, date));
   const timedIds = new Set(planOccurrences(plugin.tasks.all, [date]).filter(item => item.timed).map(item => item.task.id));
   const timedPlans = openPlans.filter((t) => timedIds.has(t.id) || (t.origin === "record" && !!t.start));
   canvas.toggleClass("has-plans", timedPlans.length > 0);
@@ -239,7 +242,7 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
       const pb = lane.createDiv({ cls: "lubi-plan", attr: { role: "button", tabindex: "0" } });
       pb.style.top = `${DAY_START_GUTTER_PX + s0 * PX_PER_MIN}px`;
       pb.style.height = `${h - 2}px`;
-      pb.style.setProperty("--chip", cat.color);
+      pb.style.setProperty("--chip", categoryTone(plugin.settings, cat.name));
       pb.toggleClass("is-compact", h < 34);
       const ph = pb.createDiv({ cls: "lubi-plan-head" });
       ph.createSpan({ cls: "lubi-plan-title", text: t.title });
@@ -338,7 +341,7 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
     block.style.height = `${height - 2}px`;
     block.style.left = `calc(var(--lubi-rec-w) * ${lane / n} + ${lane ? 2 : 0}px)`;
     block.style.width = `calc(var(--lubi-rec-w) * ${1 / n} - ${lane ? 2 : 0}px)`;
-    block.style.setProperty("--chip", cat.color);
+    block.style.setProperty("--chip", categoryTone(plugin.settings, cat.name));
     block.toggleClass("is-invalid", invalid);
     block.toggleClass("is-rest", !!cat.rest);
     block.toggleClass("is-parallel", n > 1);
@@ -529,7 +532,7 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
       const pin = rail.createEl("button", { cls: "lubi-pin", attr: { type: "button", "aria-label": `${r.start} ${r.category} ${r.title}${r.amount !== undefined ? `，¥${r.amount}` : ""}。点击编辑。` } });
       infoTip(pin, r.title, [`${shortDate(date)} · ${r.start}`, `分类：${r.category}`, ...(r.amount !== undefined ? [`支出：¥${r.amount}`] : [])], r.notes);
       pin.style.top = `${hmToMin(r.start) * PX_PER_MIN}px`;
-      pin.style.setProperty("--chip", cat.color);
+      pin.style.setProperty("--chip", categoryTone(plugin.settings, cat.name));
       icon(pin, cat.icon, "lubi-icon");
       pin.createSpan({ cls: "lubi-pin-title", text: r.title });
       if (r.amount !== undefined) pin.createSpan({ cls: "lubi-pin-amt", text: `¥${r.amount}` });
@@ -548,8 +551,10 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
   scroller.dataset.scrollTarget = String(targetPx);
 
   // 视口外还有记录时的浮标：「↑ 更早 2 条」「↓ 更晚 1 条」，点击平滑滚到最近的一条
-  const moreUp = tlWrap.createEl("button", { cls: "lubi-tl-more is-up", attr: { type: "button" } });
-  const moreDown = tlWrap.createEl("button", { cls: "lubi-tl-more is-down", attr: { type: "button" } });
+  const moreUp = tlWrap.createEl("button", { cls: "lubi-tl-more is-up", attr: { type: "button", "aria-label": "查看更早的记录" } });
+  const moreDown = tlWrap.createEl("button", { cls: "lubi-tl-more is-down", attr: { type: "button", "aria-label": "查看更晚的记录" } });
+  // Keep the accessible label intact when scroll updates change the visible caption.
+  const moreUpCaption = moreUp.createSpan(), moreDownCaption = moreDown.createSpan();
   const spans = timed.map((row) => ({ start: hmToMin(row.rec.start), end: Math.min(1440, hmToMin(row.rec.start) + row.rec.minutes) }));
   const scrollToMin = (m: number) => {
     const top = Math.max(0, m * PX_PER_MIN - 24);
@@ -564,8 +569,8 @@ export async function renderCalendarDay(plugin: LubiPlugin, host: HTMLElement, d
     const below = h ? spans.filter((x) => x.start >= bottomMin - 1) : [];
     moreUp.toggleClass("is-on", above.length > 0);
     moreDown.toggleClass("is-on", below.length > 0);
-    moreUp.setText(above.length ? `↑ 更早 ${above.length} 条 · ${minToHM(above[0].start)}–${minToHM(above[above.length - 1].end)}` : "");
-    moreDown.setText(below.length ? `↓ 更晚 ${below.length} 条 · ${minToHM(below[0].start)} 起` : "");
+    moreUpCaption.setText(above.length ? `↑ 更早 ${above.length} 条 · ${minToHM(above[0].start)}–${minToHM(above[above.length - 1].end)}` : "");
+    moreDownCaption.setText(below.length ? `↓ 更晚 ${below.length} 条 · ${minToHM(below[0].start)} 起` : "");
     moreUp.onclick = () => above.length && scrollToMin(above[above.length - 1].start);
     moreDown.onclick = () => below.length && scrollToMin(below[0].start);
   };

@@ -4,10 +4,10 @@ import { Task } from "../core/tasks";
 import { todayStr } from "../core/time";
 import { button, icon } from "./components";
 import { TaskModal } from "./modals";
-import { curlJson } from "../core/curl";
+import { curlJson, validateAiUrl } from "../core/curl";
 
-type AiSubtask = Partial<Pick<Task, "title" | "date" | "start" | "estimate">>;
-type AiDraft = Partial<Pick<Task, "title" | "category" | "date" | "start" | "estimate" | "startDate" | "endDate">> & {
+type AiSubtask = Partial<Pick<Task, "title" | "date" | "start" | "estimate" | "location">>;
+type AiDraft = Partial<Pick<Task, "title" | "category" | "date" | "start" | "estimate" | "startDate" | "endDate" | "location">> & {
   subtasks?: AiSubtask[];
   confidence?: "high" | "medium" | "low";
   explanation?: string;
@@ -18,6 +18,7 @@ function cleanJson(text: string): string {
 }
 
 function chatEndpoint(endpoint: string): string {
+  validateAiUrl(endpoint);
   const value = endpoint.trim().replace(/\/+$/, "");
   if (/\/chat\/completions$/i.test(value)) return value;
   return `${value}/chat/completions`;
@@ -32,6 +33,8 @@ function validDraft(value: unknown): AiDraft {
   for (const key of ["category", "date", "start", "startDate", "endDate"] as const) {
     if (typeof x[key] === "string" && x[key]) out[key] = x[key] as never;
   }
+  if (x.location !== undefined && (typeof x.location !== "string" || x.location.length > 200)) throw new Error("AI 返回的地点必须是不超过 200 字符的文字");
+  if (typeof x.location === "string") out.location = x.location.trim();
   if (typeof x.estimate === "number" && Number.isFinite(x.estimate) && x.estimate > 0) out.estimate = Math.round(x.estimate);
   if (x.confidence === "high" || x.confidence === "medium" || x.confidence === "low") out.confidence = x.confidence;
   if (typeof x.explanation === "string") out.explanation = x.explanation;
@@ -41,7 +44,8 @@ function validDraft(value: unknown): AiDraft {
       const child = item as Record<string, unknown>;
       const childTitle = typeof child.title === "string" ? child.title.trim() : "";
       if (!childTitle) return [];
-      const result: AiSubtask = { title: childTitle };
+      if (child.location !== undefined && (typeof child.location !== "string" || child.location.length > 200)) throw new Error("AI 返回的子任务地点必须是不超过 200 字符的文字");
+      const result: AiSubtask = { title: childTitle, location: typeof child.location === "string" ? child.location.trim() : "" };
       for (const key of ["date", "start"] as const) if (typeof child[key] === "string" && child[key]) result[key] = child[key];
       if (typeof child.estimate === "number" && Number.isFinite(child.estimate) && child.estimate > 0) result.estimate = Math.round(child.estimate);
       return [result];
@@ -85,7 +89,7 @@ export class AiTaskModal extends Modal {
     this.result.empty();
     try {
       const categories = s.categories.filter((c) => c.kind === "time").map((c) => c.name);
-      const system = `你是 Lubi 的任务解析器。当前日期是 ${todayStr()}。只返回 JSON，不要 Markdown，不要解释。字段必须是：title（字符串）、category（从 ${JSON.stringify(categories)} 中选一个）、date（YYYY-MM-DD 或空字符串）、start（HH:MM 或空字符串）、estimate（分钟数字或 0）、startDate（YYYY-MM-DD 或空字符串）、endDate（YYYY-MM-DD 或空字符串）、confidence（high/medium/low）、explanation（简短中文）、subtasks（子任务数组，每项包含 title、date、start、estimate；没有子任务时返回空数组）。用户明确说有多个步骤时，拆成 subtasks 供逐项确认；应用将其保存为独立任务，可继承所选项目，不创建父子关系。只在用户明确提供时填写日期、时间、时长和截止日期；子任务未明确的日期和分类由应用继承父任务，未明确的时长留空或 0。`;
+      const system = `你是 Lubi 的任务解析器。当前日期是 ${todayStr()}。只返回 JSON，不要 Markdown，不要解释。字段必须是：title（字符串）、location（可选地点字符串，最多 200 字符）、category（从 ${JSON.stringify(categories)} 中选一个）、date（YYYY-MM-DD 或空字符串）、start（HH:MM 或空字符串）、estimate（分钟数字或 0）、startDate（YYYY-MM-DD 或空字符串）、endDate（YYYY-MM-DD 或空字符串）、confidence（high/medium/low）、explanation（简短中文）、subtasks（子任务数组，每项包含 title、date、start、estimate、location；没有子任务时返回空数组）。用户明确说有多个步骤时，拆成 subtasks 供逐项确认；应用将其保存为独立任务，可继承所选项目，不创建父子关系。只在用户明确提供时填写日期、时间、时长、截止日期和地点；地点未提及时留空，不猜测、不从主任务继承到后续任务；子任务未明确的日期和分类由应用继承父任务，未明确的时长留空或 0。`;
       const body = JSON.stringify({ model: s.aiModel, temperature: 0.1, messages: [{ role: "system", content: system }, { role: "user", content: prompt }] });
       let response: { status: number; json: unknown };
       try {
@@ -115,7 +119,7 @@ export class AiTaskModal extends Modal {
     const head = this.result.createDiv({ cls: "lubi-ai-task-result-head" });
     head.createSpan({ text: "AI 识别结果" });
     head.createSpan({ cls: "lubi-muted", text: d.confidence === "low" ? "建议仔细确认" : "请确认后创建" });
-    const rows: [string, string][] = [["任务", d.title || "未识别"], ["分类", d.category || "未指定"], ["日期", d.date || "未安排"], ["开始", d.start || "未指定"], ["预计时长", d.estimate ? `${d.estimate} 分钟` : "未指定"], ["截止", d.endDate || "未指定"]];
+    const rows: [string, string][] = [["任务", d.title || "未识别"], ["分类", d.category || "未指定"], ["地点", d.location || "未指定"], ["日期", d.date || "未安排"], ["开始", d.start || "未指定"], ["预计时长", d.estimate ? `${d.estimate} 分钟` : "未指定"], ["截止", d.endDate || "未指定"]];
     const grid = this.result.createDiv({ cls: "lubi-ai-task-grid" });
     for (const [label, value] of rows) { const row = grid.createDiv({ cls: "lubi-ai-task-row" }); row.createSpan({ cls: "lubi-muted", text: label }); row.createSpan({ text: value }); }
     if (d.subtasks?.length) {
@@ -132,7 +136,7 @@ export class AiTaskModal extends Modal {
   private confirm(): void {
     if (!this.draft) return;
     const fallback = this.plugin.settings.categories.find((c) => c.kind === "time")?.name || "";
-    const defaults: Partial<Task> = { title: this.draft.title, category: this.draft.category || fallback, date: this.draft.date || "", start: this.draft.start || "", estimate: this.draft.estimate || 0, startDate: this.draft.startDate || "", endDate: this.draft.endDate || "" };
+    const defaults: Partial<Task> = { title: this.draft.title, location: this.draft.location || "", category: this.draft.category || fallback, date: this.draft.date || "", start: this.draft.start || "", estimate: this.draft.estimate || 0, startDate: this.draft.startDate || "", endDate: this.draft.endDate || "" };
     this.close();
     new TaskModal(this.app, this.plugin, { defaults, onSaved: (parent) => this.openSubtasks(parent) }).open();
   }
@@ -146,6 +150,7 @@ export class AiTaskModal extends Modal {
       if (!child) { this.onSaved?.(); return; }
       const defaults: Partial<Task> = {
         title: child.title,
+        location: child.location || "",
         project: parent.project,
         category: parent.category,
         date: child.date || parent.date,

@@ -12,8 +12,10 @@ export async function taskActualRows(plugin: LubiPlugin, id: string, date: strin
 }
 
 /** Save one actual record and its task; failed task writes restore the journal instead of leaving an orphan. */
-export async function saveTaskActual(plugin: LubiPlugin, draft: Task, date: string, minutes: number, actualStart: string, expected: Rec | null, forecast: number | undefined): Promise<{ task: Task; rec: Rec }> {
+export async function saveTaskActual(plugin: LubiPlugin, draft: Task, date: string, minutes: number, actualStart: string, expected: Rec | null, forecast: number | undefined, options: { complete?: boolean; completionDate?: string; independent?: boolean } = {}): Promise<{ task: Task; rec: Rec }> {
   if (!isValidDate(date) || !Number.isFinite(minutes) || minutes <= 0 || minutes > 1440) throw new Error('实际日期或用时无效；用时须为 1–1440 分钟');
+  const beforeTask = plugin.tasks.byId(draft.id);
+  const beforeTaskText = beforeTask ? JSON.stringify(beforeTask) : null;
   const current = await taskActualRows(plugin, draft.id, date);
   if (current.split || current.rows.length > 1) throw new Error('已有多段实际记录，请在时间轴分别编辑');
   const row = current.rows[0];
@@ -33,11 +35,19 @@ export async function saveTaskActual(plugin: LubiPlugin, draft: Task, date: stri
   const written = parseRecordLine(serializeRecord(rec), date);
   if (!written) throw new Error("记录格式无效，请检查分类名称和标题");
   rec = written;
-  const beforeTask = plugin.tasks.byId(draft.id);
-  const beforeTaskText = beforeTask ? JSON.stringify(beforeTask) : null;
   const task: Task = { ...draft, repeat: { ...draft.repeat, days: [...draft.repeat.days] }, doneDates: [...draft.doneDates], skipDates: [...draft.skipDates], doneLogs: { ...draft.doneLogs, [date]: { date, start, title: rec.title, category: rec.category } } };
-  if (task.repeat.kind === 'none') { task.doneAt = task.status === 'done' && task.doneAt ? task.doneAt : new Date().toISOString(); task.status = 'done'; if (!task.date) task.date = date; }
-  else { task.doneDates = [...new Set([...task.doneDates, date])]; task.skipDates = task.skipDates.filter(day => day !== date); }
+  if (options.independent) {
+    if (beforeTask) throw new Error("独立用时不能覆盖已有任务");
+    // Preserve the existing record-origin association, never add a planned to-do.
+    task.origin = "record"; task.status = "done"; task.doneAt = new Date().toISOString();
+    task.date = date; task.start = rec.start; task.estimate = 0;
+    task.repeat = { kind: "none", days: [] }; task.doneDates = []; task.skipDates = [];
+  } else if (options.complete) {
+    const occurrenceDate = options.completionDate || date;
+    if (!isValidDate(occurrenceDate)) throw new Error('任务发生日期无效');
+    if (task.repeat.kind === 'none') { task.doneAt = task.status === 'done' && task.doneAt ? task.doneAt : new Date().toISOString(); task.status = 'done'; }
+    else { task.doneDates = [...new Set([...task.doneDates, occurrenceDate])]; task.skipDates = task.skipDates.filter(day => day !== occurrenceDate); }
+  }
   const split = splitAtMidnight(rec);
   const pieces = [split.today, ...(split.tomorrow ? [{ ...split.tomorrow, date: shiftDate(date, 1) }] : [])];
   const beforeCounts = new Map<string, number>();
@@ -50,7 +60,7 @@ export async function saveTaskActual(plugin: LubiPlugin, draft: Task, date: stri
     if (row) await plugin.journal.update(date, row.line, rec); else await plugin.journal.add(rec);
     const latestTask = plugin.tasks.byId(draft.id);
     if (beforeTaskText !== (latestTask ? JSON.stringify(latestTask) : null)) throw new Error("任务在保存期间发生变化，实际记录未强行提交");
-    const saved = await plugin.tasks.upsert(task, true);
+    const saved = await plugin.tasks.upsert(task, !!options.complete);
     return { task: saved, rec };
   } catch (error) {
     const failures: string[] = [];

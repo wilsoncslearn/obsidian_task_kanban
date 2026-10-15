@@ -12,7 +12,7 @@ export class JsonTaskImportModal extends Modal {
     this.contentEl.createEl("p", { cls: "lubi-muted", text: `只新增任务，不覆盖现有数据；最多 ${IMPORT_TASK_LIMIT} 个。重复导入会新增重复任务。` });
     const label = this.contentEl.createEl("label", { cls: "lubi-field" });
     label.createSpan({ text: "粘贴 AI 生成的 JSON" });
-    const input = label.createEl("textarea", { cls: "lubi-json-import-input", attr: { "aria-label": "JSON 任务数据", spellcheck: "false", placeholder: '{"tasks":[{"title":"复习章节","category":"学习","date":"","start":"","estimate":60}]}' } });
+    const input = label.createEl("textarea", { cls: "lubi-json-import-input", attr: { "aria-label": "JSON 任务数据", spellcheck: "false", placeholder: '{"tasks":[{"title":"复习章节","category":"学习","date":"","start":"","estimate":60,"location":""}]}' } });
     const error = this.contentEl.createDiv({ cls: "lubi-form-error", attr: { role: "alert" } });error.hidden = true;
     const actions = this.contentEl.createDiv({ cls: "lubi-modal-actions" });
     const cancel = button(actions, "取消", () => this.close(), { cls: "lubi-btn-ghost" });

@@ -103,7 +103,7 @@ fs.writeFileSync(new URL("settings.html", out), page("settings", freeze(settingT
 root.querySelector('.lubi-topbar-import').click();await tick(40);
 const jsonModal=O.openModals.at(-1);jsonModal.modalEl.classList.add('modal');jsonModal.titleEl.classList.add('modal-title');jsonModal.contentEl.classList.add('modal-content');
 jsonModal.contentEl.querySelector('textarea').value=JSON.stringify({tasks:[{title:'合成导入任务',category:'学习',date:T,start:'09:00',estimate:60}]},null,2);
-fs.writeFileSync(new URL('modal-json-import.html',out),page('modal-json-import',`<div class="lubi-root"><div class="modal-bg"></div>${freeze(jsonModal.modalEl)}</div>`));jsonModal.close();
+fs.writeFileSync(new URL('modal-json-import.html',out),page('modal-json-import',`<div class="lubi-modal-preview"><div class="modal-bg"></div>${freeze(jsonModal.modalEl)}</div>`));jsonModal.close();
 // 1. 每日页
 fs.writeFileSync(new URL("today.html", out), page("today", freeze(root)));
 // Freeze active drag states using synthetic plans/records, then cancel without persistence.
@@ -176,13 +176,13 @@ nm.close();
 const actualForm=new nm.constructor(app,plugin,{defaults:{title:'实际用时布局（合成）',category:'学习',date:T,estimate:45},recordDate:T});actualForm.open();await tick(60);
 for(const [key,value,event]of [['minutes','60','input'],['start','10:00','change']]){const input=actualForm.contentEl.querySelector('[data-actual='+key+']');input.value=value;input.dispatchEvent(new window.Event(event,{bubbles:true}))}
 actualForm.modalEl.classList.add('modal');actualForm.titleEl.classList.add('modal-title');actualForm.contentEl.classList.add('modal-content');
-fs.writeFileSync(new URL('modal-actual.html',out),page('modal-actual',`<div class="lubi-root"><div class="modal-bg"></div>${freeze(actualForm.modalEl)}</div>`));actualForm.close();
+fs.writeFileSync(new URL('modal-actual.html',out),page('modal-actual',`<div class="lubi-modal-preview"><div class="modal-bg"></div>${freeze(actualForm.modalEl)}</div>`));actualForm.close();
 for(const [name,opts] of [
  ['modal-new-actual-only',{defaults:{title:'合成实际录入',category:'学习',date:T},recordDate:T,actualDefaults:{minutes:185,start:'07:00'}}],
  ['modal-new-planned',{defaults:{title:'合成规划录入',category:'学习',date:T,start:'07:45',estimate:160},recordDate:T}],
 ]) {
  const form=new nm.constructor(app,plugin,opts);form.open();await tick(60);form.modalEl.classList.add('modal');form.titleEl.classList.add('modal-title');form.contentEl.classList.add('modal-content');
- fs.writeFileSync(new URL(name+'.html',out),page(name,`<div class="lubi-root"><div class="modal-bg"></div>${freeze(form.modalEl)}</div>`));form.close();
+ fs.writeFileSync(new URL(name+'.html',out),page(name,`<div class="lubi-modal-preview"><div class="modal-bg"></div>${freeze(form.modalEl)}</div>`));form.close();
 }
 
 // 6. 任务模态：点任务页里的一行
@@ -201,7 +201,7 @@ for (const [kind, Form, opts] of [["record",m.constructor,{date:T,defaults:{cate
   const form = new Form(app,plugin,opts); form.open(); await tick(100);
   form.modalEl.classList.add("modal");form.titleEl.classList.add("modal-title");form.contentEl.classList.add("modal-content");
   const input = form.contentEl.querySelector('[role="combobox"]');input.value="";input.dispatchEvent(new window.Event("input",{bubbles:true}));input.focus();input.click();await tick(100);
-  fs.writeFileSync(new URL(`names-${kind}.html`,out),page(`names-${kind}`,`<div class="lubi-root"><div class="modal-bg"></div>${freeze(form.modalEl)}</div>`));form.close();
+  fs.writeFileSync(new URL(`names-${kind}.html`,out),page(`names-${kind}`,`<div class="lubi-modal-preview"><div class="modal-bg"></div>${freeze(form.modalEl)}</div>`));form.close();
 }
 // Gantt preview uses real task rendering with synthetic explicit/derived/repeating ranges.
 {
@@ -267,7 +267,27 @@ for (const [kind, Form, opts] of [["record",m.constructor,{date:T,defaults:{cate
  [...form.contentEl.querySelectorAll('.lubi-extras-toggles button')].find(b=>b.textContent.trim()==='项目').click();
  const select=form.contentEl.querySelector('[data-task-project=select]');select.value=project.id;select.dispatchEvent(new window.Event('change',{bubbles:true}));
  form.modalEl.classList.add('modal');form.titleEl.classList.add('modal-title');form.contentEl.classList.add('modal-content');
- fs.writeFileSync(new URL('modal-project.html',out),page('modal-project',`<div class="lubi-root"><div class="modal-bg"></div>${freeze(form.modalEl)}</div>`));form.close();
+ fs.writeFileSync(new URL('modal-project.html',out),page('modal-project',`<div class="lubi-modal-preview"><div class="modal-bg"></div>${freeze(form.modalEl)}</div>`));form.close();
+}
+// Async-workflow fixtures are generated only after legacy previews, so their data stays isolated.
+{
+ const {blankTask}=await import('./core.mjs');
+ const project=await plugin.tasks.addProject('音视频工具 · 合成异步项目');
+ for(const task of [
+  blankTask({id:'async-preview-review',title:'音视频风格拆解：审核 Agent 的分析结果并决定是否验收，这是一条用于验证窄屏换行的长标题',executor:'background',category:'日常',project:project.id}),
+  blankTask({id:'async-preview-running',title:'后台 Agent 正在整理本科毕业论文材料（仅手动标注）',executor:'background',category:'学习',project:project.id})
+ ])await plugin.tasks.upsert(task);
+ await plugin.tasks.setBackgroundPhase('async-preview-review',T,'running');
+ await plugin.tasks.setBackgroundPhase('async-preview-review',T,'review');
+ await plugin.tasks.setBackgroundPhase('async-preview-running',T,'running');
+ view.tasksState.scheduleView='calendar';view.tasksState.period='day';view.show('tasks',T);await tick(250);
+ root.querySelector('.lubi-background-card').open=true;
+ fs.writeFileSync(new URL('async-workflow.html',out),page('async-workflow',freeze(root)));
+ view.openNew();await tick(40);const Form=O.openModals.at(-1).constructor;O.openModals.at(-1).close();
+ const form=new Form(app,plugin,{task:plugin.tasks.byId('async-preview-review'),recordDate:T,actualRequired:true});form.open();await form.actualLoading;
+ form.actualText='10min';form.actualStart='14:00';form.actualEdited=true;form.render(false);
+ form.modalEl.classList.add('modal');form.titleEl.classList.add('modal-title');form.contentEl.classList.add('modal-content');
+ fs.writeFileSync(new URL('modal-async.html',out),page('modal-async',`<div class="lubi-modal-preview"><div class="modal-bg"></div>${freeze(form.modalEl)}</div>`));form.close();
 }
 console.log("preview written to", out.pathname);
 process.exit(0);

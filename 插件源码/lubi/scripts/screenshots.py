@@ -41,8 +41,10 @@ async def main():
         await hover_big(pg); await pg.wait_for_timeout(150)
         box = await (await pg.query_selector(".lubi-timeline-wrap")).bounding_box()
         save(await pg.screenshot(clip={"x":box["x"],"y":box["y"],"width":box["width"],"height":min(box["height"],520)}), MAN/"03-补记空白.webp")
+        await pg.set_viewport_size({"width": 1400, "height": 1600})
         for n, name in [("modal-quick","04-一行快速记录"),("modal","05-编辑记录"),("modal-task","09-编辑任务"),("modal-keys","10-快捷键")]:
             await go(pg, n); save(await (await pg.query_selector(".modal")).screenshot(), MAN/f"{name}.webp")
+        await pg.set_viewport_size({"width": 1400, "height": 900})
         await go(pg, "review"); save(await pg.screenshot(), MAN/"06-回顾页.webp")
         await go(pg, "review-year"); save(await (await pg.query_selector(".lubi-heat-card")).screenshot(), MAN/"07-年热力图.webp")
         await go(pg, "tasks"); save(await pg.screenshot(), MAN/"08-任务页.webp")
@@ -53,9 +55,12 @@ async def main():
         for n, out, dark in [("today","today-light",False),("today","today-dark",True),("review","review-week",False),("tasks","tasks-week",False),("review","review-week-dark",True),("tasks","tasks-week-dark",True)]:
             await go(pg, n, dark); save(await pg.screenshot(), RD/f"{out}.webp", 80)
         await go(pg, "review-year"); save(await (await pg.query_selector(".lubi-heat-card")).screenshot(), RD/"year-heatmap.webp", 82)
+        await pg.set_viewport_size({"width": 1400, "height": 1600})
         await go(pg, "modal-quick"); save(await (await pg.query_selector(".modal")).screenshot(), RD/"quick-entry.webp", 84)
+        await go(pg, "modal-new"); save(await (await pg.query_selector(".modal")).screenshot(), RD/"task-form.webp", 84)
         await go(pg, "modal-keys"); save(await (await pg.query_selector(".modal")).screenshot(), RD/"shortcuts.webp", 84)
         await go(pg, "estimate-comparison"); await (await pg.query_selector(".modal")).screenshot(path=str(RD/"estimate-comparison.png"))
+        await pg.set_viewport_size({"width": 1400, "height": 900})
         await go(pg, "projects-gantt"); save(await pg.screenshot(), RD/"projects-gantt.webp", 84)
         await go(pg, "today"); await hover_big(pg); await pg.wait_for_timeout(150)
         box = await (await pg.query_selector(".lubi-timeline-wrap")).bounding_box()

@@ -14,3 +14,9 @@ export * from "../src/core/gantt";
 
 export * from "../src/core/planning";
 export * from "../src/core/taskImport";
+
+export * from "../src/core/execution";
+
+export * from "../src/core/productivity";
+export * from "../src/core/productService";
+export { validateAiUrl } from "../src/core/curl";

@@ -1,3 +1,4 @@
+import { categoryTone } from "./monochrome";
 // 计划页：同一日期范围的日历 / 甘特图 / 列表。
 
 import { Notice } from "obsidian";
@@ -6,7 +7,7 @@ import { Task, blankTask } from "../core/tasks";
 import { fmtDuration, hmToMin, minToHM, nowHM, shortDate, todayStr, weekdayZh } from "../core/time";
 import { categoryOf } from "../settings";
 import { button, el, HOUR_PX, hoverTip, infoTip, iconButton, segmented, stopAll, tip, undoNotice } from "./components";
-import { TaskModal, openUnifiedRecord } from "./modals";
+import { RecordModal, TaskModal, openUnifiedRecord } from "./modals";
 import { dayTasks, groupedRows, OpenRecord, taskRow } from "./taskList";
 import { startDrag } from "./drag";
 import { explicitSpan, GanttPeriod, ganttWindow, stepGanttDate } from "../core/gantt";
@@ -16,7 +17,9 @@ import { planDatePatch, planInbox, planOccurrences } from "../core/planning";
 import { renderMonthCalendar, renderRangeList } from "./planningViews";
 import { renderCalendarDay } from "./calendarDay";
 import { renderDayPlan } from "./daySummary";
-import type { Rec } from "../core/records";
+import { ParsedLine, PENDING_KEY, Rec } from "../core/records";
+import { renderExecutionQueues } from "./execution";
+import { backgroundEntries } from "../core/execution";
 
 const SNAP = 15;
 let weekDayLabelId = 0;
@@ -31,7 +34,7 @@ export interface TasksState {
 type ScheduleFields = Pick<Task, "date" | "start" | "estimate" | "startDate" | "endDate">;
 
 async function writeSchedule(plugin: LubiPlugin, task: Task, patch: Partial<ScheduleFields>): Promise<void> {
-  const attempted = { ...task, ...patch };
+  const attempted = { ...(plugin.tasks.byId(task.id) || task), ...patch };
   const saving = plugin.tasks.upsert(attempted);
   const writtenStamp = attempted.updated;
   try { await saving; }
@@ -91,17 +94,21 @@ export async function renderTasks(plugin: LubiPlugin, host: HTMLElement, date: s
   host.toggleClass("is-list", state.scheduleView === "list");
   const calendarDay = state.scheduleView === "calendar" && state.period === "day";
   host.toggleClass("is-calendar-day", calendarDay);
-  const openNew: OpenRecord = (d, onRec) => openUnifiedRecord(plugin, date, d, async rec => { if (rec && onRec) await onRec(rec); rerender(); });
+  const openNew: OpenRecord = (d, onRec, completionDate) => openUnifiedRecord(plugin, date, d, async rec => { if (rec && onRec) await onRec(rec); rerender(); }, completionDate);
   const edit = (task: Task, occurrenceDate = date) => new TaskModal(plugin.app, plugin, { task, recordDate: occurrenceDate, onSaved: rerender }).open();
   const create = (defaults: Partial<Task> = {}) => new TaskModal(plugin.app, plugin, { defaults, onSaved: rerender }).open();
+  let rows: ParsedLine[] = [], timeAvailable = true;
+  try { rows = await plugin.journal.read(date); } catch { timeAvailable = false; }
+  renderPlanningOverview(plugin, host, date, rows.map(row => row.rec), timeAvailable);
   const days = ganttWindow(state.selectedDate, state.period);
   const head = renderPlanningHead(host, state, days, rerender);
   if (calendarDay) {
     const day = host.createDiv({ cls: "lubi-calendar-day" });
     await renderCalendarDay(plugin, day, date, rerender, (side, records) => {
       side.addClass("lubi-tasks-left", "lubi-task-lists");
-      renderLists(plugin, side, date, rerender, openNew, edit, create, true, records);
-    });
+      renderLists(plugin, side, date, rerender, openNew, edit, create, true, records, day.querySelector<HTMLElement>(".lubi-today-main")!);
+      renderPersonalTime(plugin, side, date, rows, timeAvailable, rerender, openNew);
+    }, timeAvailable ? rows : undefined);
     const summary = day.querySelector<HTMLElement>(".lubi-today-summary")!;
     head.querySelector(".lubi-schedule-range")!.after(summary);
     const top = day.querySelector<HTMLElement>(".lubi-today-top")!;
@@ -111,10 +118,12 @@ export async function renderTasks(plugin: LubiPlugin, host: HTMLElement, date: s
   }
   const top = host.createDiv({ cls: "lubi-tasks-top lubi-planning-top" });
   const lists = top.createDiv({ cls: "lubi-tasks-left lubi-task-lists" });
-  lists.addClass("lubi-card");
-  renderLists(plugin, lists, date, rerender, openNew, edit, create, true);
   const main = top.createDiv({ cls: "lubi-tasks-week lubi-planning-main" });
   top.appendChild(lists);
+  const dayList = state.scheduleView === "list" && state.period === "day";
+  renderLists(plugin, lists, date, rerender, openNew, edit, create, true, undefined, main, dayList ? main : lists);
+  renderPersonalTime(plugin, lists, date, rows, timeAvailable, rerender, openNew);
+  if (dayList) return;
   const card = main.createDiv({ cls: `lubi-card ${state.scheduleView === "gantt" ? "lubi-gantt-card" : state.scheduleView === "list" ? "lubi-plan-list-card" : state.period === "month" ? "lubi-month-card" : "lubi-week-card"}` });
   const save = (id: string, patch: Partial<ScheduleFields>, message: string) => updateScheduleWithUndo(plugin, id, patch, message, rerender);
   const drop = (target: HTMLElement, day: string) => bindDrop(plugin, target, day, null, rerender, true, () => {
@@ -126,6 +135,56 @@ export async function renderTasks(plugin: LubiPlugin, host: HTMLElement, date: s
     else renderGantt(plugin, card, days, state.ganttCollapsed, rerender, edit, save);
   } else if (state.period === "month") renderMonthCalendar(plugin, card, date, edit, makeDraggable, drop);
   else renderCalendarSchedule(plugin, card, date, state, rerender, edit);
+}
+
+/** Read-only page metrics; background clocks never become journal minutes. */
+function renderPlanningOverview(plugin: LubiPlugin, host: HTMLElement, date: string, records: Rec[], timeAvailable: boolean): void {
+  const intro = host.createDiv({ cls: "lubi-plan-intro" });
+  intro.createDiv({ cls: "lubi-plan-overline", text: "LUBI / PLAN & DO" });
+  intro.createEl("h1", { cls: "lubi-plan-heading", text: "任务与计划" });
+  intro.createDiv({ cls: "lubi-muted", text: "做完打勾，花了时间点「记用时」。Agent 后台与本人投入分开看。" });
+  const overview = host.createDiv({ cls: "lubi-plan-overview", attr: { "aria-label": `${date} 的计划摘要` } });
+  const scheduled = planOccurrences(plugin.tasks.all, [date]);
+  const review = backgroundEntries(plugin.tasks.all, "review").length;
+  const running = backgroundEntries(plugin.tasks.all, "running").length;
+  const queued = new Set([...backgroundEntries(plugin.tasks.all, "review"), ...backgroundEntries(plugin.tasks.all, "running")].map(entry => entry.task.id));
+  const actual = records.filter(record => record.minutes > 0 && (!record.extra[PENDING_KEY] || record.extra[PENDING_KEY] === "实际开始未核对"));
+  const minutes = actual.reduce((sum, record) => sum + record.minutes, 0);
+  const pending = records.filter(record => record.minutes > 0 && record.extra[PENDING_KEY] && record.extra[PENDING_KEY] !== "实际开始未核对").length;
+  const metric = (id: string, label: string, value: string, note: string) => {
+    const item = overview.createDiv({ cls: "lubi-plan-metric", attr: { "data-plan-metric": id } });
+    item.createDiv({ cls: "lubi-plan-metric-label", text: label });
+    item.createDiv({ cls: "lubi-plan-metric-value", text: value });
+    item.createDiv({ cls: "lubi-plan-metric-note", text: note });
+  };
+  metric("todo", "当天待做", String(scheduled.filter(item => !item.done && !queued.has(item.task.id)).length), `${date} · 后台和待审核另列`);
+  metric("review", "需我处理", String(review), "跨日期的待审核结果");
+  metric("background", "Agent 后台", String(running), "手动标注 · 不计入本人用时");
+  metric("actual", "本人已记录", timeAvailable ? fmtDuration(minutes) : "—", !timeAvailable ? "用时暂不可读，未按 0 计算" : pending ? `${pending} 条按计划待确认未计入` : "本人记录之和，不是后台运行时间");
+}
+
+/** A small journal-backed sidebar, with the existing record editor for multi-segment safety. */
+function renderPersonalTime(plugin: LubiPlugin, host: HTMLElement, date: string, rows: ParsedLine[], available: boolean, rerender: () => void, openNew: OpenRecord): void {
+  const card = host.createDiv({ cls: "lubi-card lubi-section lubi-personal-time" });
+  const head = card.createDiv({ cls: "lubi-panel-head" });
+  head.createEl("h3", { cls: "lubi-panel-title", text: "我的用时" });
+  const timed = rows.filter(row => row.rec.minutes > 0);
+  head.createSpan({ cls: "lubi-muted", text: date });
+  card.createDiv({ cls: "lubi-muted lubi-execution-note", text: "来自本人日记；待确认会单独标注，不包含后台时长。" });
+  const list = card.createDiv({ cls: "lubi-personal-time-list" });
+  if (!available) list.createDiv({ cls: "lubi-muted lubi-pad", attr: { role: "status" }, text: "用时暂不可读。任务仍可操作，可稍后刷新。" });
+  else if (!timed.length) list.createDiv({ cls: "lubi-muted lubi-pad", text: "这一天还没有用时记录。" });
+  for (const row of timed.slice(-4).reverse()) {
+    const record = row.rec;
+    const entry = button(list, record.title, () => new RecordModal(plugin.app, plugin, { date, rec: record, line: row.line, onSaved: rerender }).open(), { cls: "lubi-personal-time-entry lubi-quiet-action" });
+    entry.setAttribute("aria-label", `编辑 ${record.title} 的用时记录，${fmtDuration(record.minutes)}`);
+    entry.createSpan({ cls: "lubi-personal-time-minutes", text: fmtDuration(record.minutes) });
+    entry.createSpan({ cls: "lubi-personal-time-meta", text: `${record.category} · ${record.start}${record.extra[PENDING_KEY] ? " · 待核对" : ""}` });
+  }
+  if (timed.length > 4) card.createDiv({ cls: "lubi-muted lubi-personal-time-more", text: `另有 ${timed.length - 4} 条，请在日历时间轴查看与编辑。` });
+  button(card, "记一笔用时", () => openNew({}), { cls: "lubi-personal-time-add" });
+  const background = host.querySelector(".lubi-background-card");
+  if (background) background.after(card); else host.prepend(card);
 }
 
 function renderPlanningHead(host: HTMLElement, state: TasksState, days: string[], rerender: () => void): HTMLElement {
@@ -140,18 +199,31 @@ function renderPlanningHead(host: HTMLElement, state: TasksState, days: string[]
   const nav = head.createDiv({ cls: "lubi-nav lubi-push-right" });
   const shift = (direction: number) => { state.selectedDate = stepGanttDate(state.selectedDate, state.period, direction); rerender(); };
   const unit = state.period === "day" ? "天" : state.period === "week" ? "周" : "月";
+  nav.addClass("lubi-planning-nav");
   const prev = iconButton(nav, "chevron-left", `向前一${unit}`, () => shift(-1)); prev.dataset.lubiFocus = "planning:previous";
-  button(nav, "今天", () => { state.selectedDate = todayStr(); rerender(); }, { cls: "lubi-btn-sm" }).dataset.lubiFocus = "planning:today";
+  nav.createSpan({ cls: "lubi-nav-date", text: state.period === "day" ? `${shortDate(state.selectedDate)} 周${weekdayZh(state.selectedDate)}` : `${shortDate(days[0])} – ${shortDate(days[days.length - 1])}` });
+  if (state.selectedDate !== todayStr()) button(nav, "回到今天", () => { state.selectedDate = todayStr(); rerender(); }, { cls: "lubi-btn-sm lubi-nav-today" }).dataset.lubiFocus = "planning:today";
   const next = iconButton(nav, "chevron-right", `向后一${unit}`, () => shift(1)); next.dataset.lubiFocus = "planning:next";
   return head;
 }
 
 // ---------- 左栏 ----------
 
-function renderLists(plugin: LubiPlugin, host: HTMLElement, date: string, rerender: () => void, openNew: OpenRecord, edit: (t: Task) => void, create: (d?: Partial<Task>) => void, showToday: boolean, records?: Rec[]): void {
+function renderLists(plugin: LubiPlugin, host: HTMLElement, date: string, rerender: () => void, openNew: OpenRecord, edit: (t: Task) => void, create: (d?: Partial<Task>) => void, showToday: boolean, records?: Rec[], attentionHost: HTMLElement = host, todayHost: HTMLElement = host): void {
+  renderExecutionQueues(plugin, host, rerender, {
+    edit: (task, occurrenceDate) => new TaskModal(plugin.app, plugin, { task, recordDate: todayStr(), completionDate: occurrenceDate, onSaved: rerender }).open(),
+    record: (task, occurrenceDate) => openUnifiedRecord(plugin, todayStr(), { task: task.id, title: task.title, category: task.category }, () => rerender(), occurrenceDate),
+    followup: task => create({ title: "", category: task.category, project: task.project, notes: `跟进「${task.title}」` }),
+  }, attentionHost);
+  const activeBackground = new Set([...backgroundEntries(plugin.tasks.all, "review"), ...backgroundEntries(plugin.tasks.all, "running")].map(entry => entry.task.id));
   if (showToday) {
     const scheduled = planOccurrences(plugin.tasks.all, [date]);
-    let occurrences = records ? dayTasks(plugin, date).map(task => scheduled.find(item => item.task.id === task.id) || { task, date, from: date, to: date, timed: !!task.start, done: plugin.tasks.isDoneOn(task, date) }) : scheduled;
+    const candidates = records ? dayTasks(plugin, date) : [...new Map([
+      ...scheduled.map(item => [item.task.id, item.task] as const),
+      ...plugin.tasks.forDate(date).filter(task => !task.date && task.repeat.kind === "none" && task.status === "done" && task.origin !== "record" && !plugin.tasks.children(task.id).length).map(task => [task.id, task] as const),
+    ]).values()];
+    let occurrences = candidates.map(task => scheduled.find(item => item.task.id === task.id) || { task, date, from: date, to: date, timed: !!task.start && !!task.date, done: plugin.tasks.isDoneOn(task, date) });
+    if (todayHost !== host) occurrences = occurrences.filter(item => !activeBackground.has(item.task.id));
     const logged = new Set(records?.map(rec => rec.task).filter(Boolean));
     // Date alone is not an independent activity for an ancestor used as a group.
     if (records) {
@@ -161,7 +233,7 @@ function renderLists(plugin: LubiPlugin, host: HTMLElement, date: string, rerend
     if (records) occurrences.sort((a, b) => (a.timed ? hmToMin(a.task.start) : 1440) - (b.timed ? hmToMin(b.task.start) : 1440) || a.task.order - b.task.order);
     if (!records) occurrences.sort((a, b) => a.task.order - b.task.order || a.task.created.localeCompare(b.task.created));
     const today = occurrences.map(item => item.task);
-    const done = today.filter(t => plugin.tasks.isDoneOn(t, date) || logged.has(t.id)).length;
+    const done = today.filter(t => plugin.tasks.isDoneOn(t, date)).length;
     const renderList = (list: HTMLElement) => {
       const row = (group: HTMLElement, t: Task) => {
         const occurrence = occurrences.find(item => item.task.id === t.id)!;
@@ -171,48 +243,40 @@ function renderLists(plugin: LubiPlugin, host: HTMLElement, date: string, rerend
         makeDraggable(li, t);
         bindTaskSort(plugin, li, t, list, rerender);
       };
-      groupedRows(plugin, list, today, edit, row);
+      if (records) { groupedRows(plugin, list, today, edit, row); return; }
+      const active = today.filter(t => !plugin.tasks.isDoneOn(t, date));
+      const finished = today.filter(t => plugin.tasks.isDoneOn(t, date));
+      groupedRows(plugin, list, active, edit, row);
+      if (finished.length) {
+        const fold = list.createEl("details", { cls: "lubi-done-fold" });
+        fold.createEl("summary", { text: `已完成（${finished.length}）` });
+        const inner = fold.createDiv({ cls: "lubi-done-fold-body" });
+        groupedRows(plugin, inner, finished, edit, row);
+      }
     };
     let card: HTMLElement;
-    if (records) card = renderDayPlan(host, date, today.length, done, renderList);
+    if (records) card = renderDayPlan(todayHost, date, today.length, done, renderList);
     else {
-      card = host.createDiv({ cls: "lubi-section lubi-list-card lubi-selected-day-list", attr: { "data-date": date } });
+      card = todayHost.createDiv({ cls: "lubi-section lubi-list-card lubi-selected-day-list", attr: { "data-date": date } });
+      if (!todayHost.classList.contains("lubi-card")) card.addClass("lubi-card");
+      if (todayHost !== host) card.addClass("lubi-plan-list-card");
       const head = card.createDiv({ cls: "lubi-panel-head" });
-      el(head, "h3", "lubi-panel-title", date === todayStr() ? "今日计划" : `${shortDate(date)} 周${weekdayZh(date)}`);
+      el(head, "h3", "lubi-panel-title", todayHost !== host ? "当天任务" : date === todayStr() ? "今日计划" : `${shortDate(date)} 周${weekdayZh(date)}`);
       head.createSpan({ cls: "lubi-muted", text: `${done}/${today.length} 已做` });
       const list = card.createDiv({ cls: "lubi-task-list" });
+      if (todayHost !== host) list.addClass("lubi-plan-range-list");
       if (!today.length) list.createDiv({ cls: "lubi-muted lubi-pad", text: "暂无安排" });
       renderList(list);
     }
     // 整张当天清单都可接收任务，包括空列表、标题和快速输入区域。
     bindDrop(plugin, card, date, null, rerender);
-    // 快速输入：键盘按回车，触屏有明确的添加按钮。
-    const quick = card.createDiv({ cls: "lubi-quick-add" });
-    const input = quick.createEl("input", { type: "text", attr: { placeholder: "添加当天任务", "aria-label": `添加 ${date} 的待办`, "data-lubi-focus": "quick-add" } });
-    let saving = false;
-    const add = async () => {
-      const title = input.value.trim();
-      if (!title || saving) { input.focus(); return; }
-      saving = true;
-      try {
-        const firstCat = plugin.settings.categories.find((c) => c.kind === "time")?.name || "";
-        await plugin.tasks.upsert(blankTask({ title, date, category: firstCat }));
-        input.value = "";
-        rerender();
-      } catch (e) { new Notice(`添加失败：${(e as Error).message}`, 6000); }
-      finally { saving = false; }
-    };
-    input.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" || e.isComposing) return;
-      e.preventDefault();
-      void add();
-    });
-    button(quick, "添加", () => void add(), { cls: "lubi-btn-sm" });
+    renderQuickAdd(plugin, card, date, rerender);
   }
   // 未安排：显式跨度和实际记录生成的任务不混入未安排。
-  const inbox = planInbox(plugin.tasks.all);
+  const inbox = planInbox(plugin.tasks.all).filter(task => !activeBackground.has(task.id));
   const ib = host.createDiv({ cls: "lubi-section lubi-list-card" });
-  if (records) ib.addClass("lubi-card");
+  if (!host.classList.contains("lubi-card")) ib.addClass("lubi-card");
+  ib.addClass("lubi-inbox-card");
   const ih = ib.createDiv({ cls: "lubi-panel-head" });
   el(ih, "h3", "lubi-panel-title", "未安排");
   ih.createSpan({ cls: "lubi-muted", text: inbox.length ? String(inbox.length) : "" });
@@ -227,6 +291,30 @@ function renderLists(plugin: LubiPlugin, host: HTMLElement, date: string, rerend
     iconButton(act, "calendar-plus", `安排 ${t.title} 到 ${date}（可撤销）`, () => void updateScheduleWithUndo(plugin, t.id, { date, start: "" }, `${t.title} → ${date}`, rerender));
     iconButton(act, "calendar-days", `为 ${t.title} 选择日期和时间`, () => new TaskModal(plugin.app, plugin, { task: t, focusDate: true, onSaved: rerender }).open());
   });
+}
+
+function renderQuickAdd(plugin: LubiPlugin, card: HTMLElement, date: string, rerender: () => void): void {
+  const quick = card.createDiv({ cls: "lubi-quick-add" });
+  const input = quick.createEl("input", { type: "text", attr: { placeholder: "添加当天任务", "aria-label": `添加 ${date} 的待办`, "data-lubi-focus": "quick-add" } });
+  let saving = false;
+  const add = async () => {
+    const title = input.value.trim();
+    if (!title || saving) { input.focus(); return; }
+    saving = true;
+    try {
+      const firstCat = plugin.settings.categories.find((c) => c.kind === "time")?.name || "";
+      await plugin.tasks.upsert(blankTask({ title, date, category: firstCat }));
+      input.value = "";
+      rerender();
+    } catch (e) { new Notice(`添加失败：${(e as Error).message}`, 6000); }
+    finally { saving = false; }
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.isComposing) return;
+    e.preventDefault();
+    void add();
+  });
+  button(quick, "添加", () => void add(), { cls: "lubi-btn-sm" });
 }
 
 /** 对同一项目的叶子任务保留可见父级路径；父级名称可直接打开编辑。 */
@@ -331,7 +419,7 @@ function renderCalendarSchedule(plugin: LubiPlugin, card: HTMLElement, date: str
     const dayLabel = dayButton.createSpan({ cls: "lubi-sr-only", text: `查看 ${d} 周${weekdayZh(d)} 的任务`, attr: { id: `lubi-week-day-label-${++weekDayLabelId}` } });
     dayButton.setAttribute("aria-labelledby", dayLabel.id);
     dayButton.createSpan({ cls: "lubi-week-dow", text: `周${weekdayZh(d)}` });
-    dayButton.createSpan({ cls: "lubi-week-date", text: String(Number(d.slice(8, 10))) });
+    dayButton.createSpan({ cls: "lubi-week-date", text: `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}` });
     dayButton.addEventListener("click", () => plugin.openDate(d, "tasks"));
     renderLoad(plugin, h, d);
     const allDay = daily.get(d)!.filter(item => !item.timed).map(item => item.task);
@@ -355,7 +443,7 @@ function renderCalendarSchedule(plugin: LubiPlugin, card: HTMLElement, date: str
         if (t.notes.trim()) rows.push(createDiv({ cls: "lubi-task-tip-notes", text: t.notes }));
         return rows;
       }, "side");
-      chip.style.setProperty("--chip", categoryOf(s, t.category).color);
+      chip.style.setProperty("--chip", categoryTone(s, t.category));
       chip.createSpan({ text: t.title });
       chip.addEventListener("click", (e) => {
         stopAll(e);
@@ -461,7 +549,7 @@ function renderCalendarSchedule(plugin: LubiPlugin, card: HTMLElement, date: str
         block.style.height = `${Math.max((m / 60) * HOUR_PX - 2, 18)}px`;
       };
       place(startMin, dur);
-      block.style.setProperty("--chip", categoryOf(s, t.category).color);
+      block.style.setProperty("--chip", categoryTone(s, t.category));
       block.createDiv({ cls: "lubi-wblock-title", text: t.title });
       const timeEl = block.createDiv({ cls: "lubi-wblock-time", text: `${t.start}–${minToHM(startMin + dur)}${t.estimate ? "" : " · 未填预计"}` });
       const handleTop = block.createDiv({ cls: "lubi-block-handle is-top" });

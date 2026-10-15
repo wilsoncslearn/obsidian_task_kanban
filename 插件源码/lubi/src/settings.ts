@@ -14,11 +14,13 @@ export interface CategoryDef {
 export interface LubiSettings {
   /** Local name recency only; no changes to task or journal schema. */
   nameUses?: NameUse[];
+  focusTimer?: import("./core/productivity").TimerSession;
   journalFolder: string;
   taskFile: string;
   backupFolder: string;
   scheduleStartHour: number; // week schedule first hour
   scheduleEndHour: number; // week schedule last hour (exclusive)
+  /** Legacy persisted field; completion no longer implicitly logs time. */
   promptLogOnComplete: boolean;
   onboardingDone: boolean;
   categories: CategoryDef[];
@@ -75,7 +77,7 @@ export const DEFAULT_SETTINGS: LubiSettings = {
   backupFolder: "备份",
   scheduleStartHour: 6,
   scheduleEndHour: 24,
-  promptLogOnComplete: true,
+  promptLogOnComplete: false,
   onboardingDone: false,
   categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
   expenseTypes: ["餐饮", "居住", "交通", "服饰个护", "休闲娱乐", "医疗保健", "教育提升", "其他"],

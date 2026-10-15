@@ -3,7 +3,7 @@ import { blankTask, Task, RepeatKind } from "./tasks";
 import { isValidDate, todayStr } from "./time";
 
 export const IMPORT_TASK_LIMIT = 200;
-const FIELDS = ["project", "title", "category", "date", "start", "estimate", "notes", "repeat", "startDate", "endDate", "subtasks"];
+const FIELDS = ["project", "title", "category", "date", "start", "estimate", "notes", "location", "repeat", "startDate", "endDate", "subtasks"];
 function object(value: unknown, path: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${path} 必须是对象`);
   return value as Record<string, unknown>;
@@ -60,7 +60,7 @@ export function parseTaskImport(input: string, categories: string[]): Task[] {
     if (from && to && from > to) throw new Error(`${path} 起止跨度日期不能倒置`);
     if (repeat.kind === "none" && (!!from !== !!to)) throw new Error(`${path} 普通任务的 startDate 和 endDate 必须一起填写`);
     if (repeat.kind === "none" && day && from && to && (day < from || day > to)) throw new Error(`${path}.date 必须位于起止跨度之内`);
-    const task = blankTask({ title, category, date: day, start, estimate, notes: text(obj.notes, `${path}.notes`), repeat, startDate: from, endDate: to, parent: parent?.id || null, order: order + tasks.length });
+    const task = blankTask({ title, category, date: day, start, estimate, location: text(obj.location, `${path}.location`, "", 200), notes: text(obj.notes, `${path}.notes`), repeat, startDate: from, endDate: to, parent: parent?.id || null, order: order + tasks.length });
     const project = text(obj.project, `${path}.project`, parent?.project || "", 200);if (project) task.project = project;
     tasks.push(task);
     if (obj.subtasks !== undefined) {
@@ -73,17 +73,18 @@ export function parseTaskImport(input: string, categories: string[]): Task[] {
 }
 
 export function taskImportPrompt(categories: string[], referenceDate = todayStr()): string {
-  const example = { tasks: [{ title: "复习一个章节", category: categories[0] || "学习", date: referenceDate, start: "09:00", estimate: 60, notes: "复习并整理错题", repeat: { kind: "none", days: [] } }] };
+  const example = { tasks: [{ title: "复习一个章节", category: categories[0] || "学习", date: referenceDate, start: "09:00", estimate: 60, location: "图书馆", notes: "复习并整理错题", repeat: { kind: "none", days: [] } }] };
   return `你是我的任务规划助手。我会与你讨论目标、时间安排和任务拆分；讨论时可以提问，只有当我说“生成导入 JSON”时，才输出最终数据。
 
 参考日期：${referenceDate}。相对日期以此为准；如果我另给日期，以我提供的日期为准。
 现有时间分类（只能从中选择，不新增分类）：${JSON.stringify(categories)}。
 
 最终只输出一个合法 JSON 对象，不输出解释或 Markdown 代码块。根对象只能包含 tasks 数组。
-任务只允许字段：title、category、project、date、start、estimate、notes、repeat、startDate、endDate。
+任务只允许字段：title、category、project、date、start、estimate、notes、location、repeat、startDate、endDate。
 - title：非空任务名，最多 1000 字符；category：上述分类之一。
 - date：YYYY-MM-DD 或空字符串（未安排）；start：HH:mm 或空字符串，00:00—23:59。普通任务有 start 时必须有 date。
 - estimate：预计用时的整数分钟，0—1440；不能写“1h”或“60min”。notes：文字，可省略。
+- location：可选地点，文字，最多 200 字符；未明确提及地点时省略或写空字符串，不猜测、不从其他任务继承。
 - repeat：可省略，默认 {"kind":"none","days":[]}。kind 仅 none/daily/weekly/monthly。none、daily 的 days=[]；weekly 的 days 为 0—6（0=周日，1=周一），monthly 的 days 为 1—31，需非空且不重复。
 - 普通跨日任务 startDate/endDate 必须一起填写且起始不晚于结束；date 如填写须在跨度内。重复任务可用这两项限制生效日期。
 - project：项目名称，可省略或写空字符串表示独立任务。项目只负责归属，不是待办；同项目任务写为 tasks 数组中的独立项，不生成父任务或 subtasks。不要凭空安排日期和时间。

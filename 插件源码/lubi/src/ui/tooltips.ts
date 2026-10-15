@@ -46,8 +46,8 @@ function normalize(el: Element): void {
   el.setAttribute("data-lubi-label-id", description.id);
   el.removeAttribute("aria-label"); el.removeAttribute("title");
   if (!nameOnly && !rich.has(el)) {
-    const hint = el.matches(".lubi-task-start") ? "填写实际用时，保存后完成任务"
-      : el.matches(".lubi-task-unlogged") ? "按计划补记一条待确认记录" : label;
+    const hint = el.matches(".lubi-task-start") ? "记录本人实际，可选择完成"
+      : el.matches(".lubi-task-unlogged") ? "按计划补记待确认记录，不改变完成状态" : label;
     el.setAttribute("data-lubi-tip", hint);
   }
 }

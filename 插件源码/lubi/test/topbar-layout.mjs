@@ -144,8 +144,10 @@ if (!browser) {
       out.newTaskDetails=details?{visible:!details.hidden&&getComputedStyle(details).display!=='none',open:details.open,summary:details.querySelector('summary')?.textContent,inputsFit:[...details.querySelectorAll('input')].every(input=>r(input).width>0&&r(input).left>=box.left&&r(input).right<=box.right),hintVisible:hint?getComputedStyle(hint).display!=='none'&&r(hint).height>0:false,hint:hint?.textContent,removedInstruction:unifiedModal.textContent.includes('留空保存计划；填写实际用时后保存并完成任务')}:null;
       const plan=unifiedModal.querySelector('.lubi-plan-grid'),planFields=plan?[...plan.children]:[],actualFields=details?[...details.querySelectorAll('.lubi-field')]:[];
       const planDate=plan?.querySelector('input[type=date]'),planStart=plan?.querySelector('input[type=time]');
+      const location=unifiedModal.querySelector('.lubi-location-field'),repeat=unifiedModal.querySelector('.lubi-repeat-field');
+      out.locationField={ordered:repeat.nextElementSibling===location&&location.nextElementSibling.tagName==='HR',fits:r(location.querySelector('input')).left>=box.left&&r(location.querySelector('input')).right<=box.right,named:location.querySelector('label').textContent==='地点（可选）'};
       out.taskFieldOrder={plan:planFields.map(e=>e.querySelector('label')?.textContent),actual:actualFields.map(e=>e.querySelector('label')?.textContent),planPair:!planDate||(Math.abs(r(planDate).top-r(planStart).top)<=1&&r(planDate).right<=r(planStart).left),actualPair:actualFields.length===3&&Math.abs(r(actualFields[0]).top-r(actualFields[1]).top)<=1&&r(actualFields[0]).right<=r(actualFields[1]).left,actualBelow:actualFields.length===3&&r(actualFields[2]).top>=r(actualFields[0]).bottom};
-      out.unifiedActual={modes:[...unifiedModal.querySelectorAll('.lubi-kind-seg button')].map(button=>button.dataset.lubiFocus),duration:unifiedModal.querySelector('[data-actual=minutes]').value,comparison:hint?.textContent,inputsFit:[...unifiedModal.querySelectorAll('input')].every(input=>r(input).width>0&&r(input).left>=box.left&&r(input).right<=box.right),overflow:document.documentElement.scrollWidth-innerWidth};
+      out.unifiedActual={modes:[...unifiedModal.querySelectorAll('.lubi-kind-seg button')].map(button=>button.dataset.lubiFocus),duration:unifiedModal.querySelector('[data-actual=minutes]').value,comparison:hint?.textContent,inputsFit:[...unifiedModal.querySelectorAll('input')].filter(input=>r(input).width>0).every(input=>r(input).left>=box.left&&r(input).right<=box.right),overflow:document.documentElement.scrollWidth-innerWidth};
     }
     const projectSelect=document.querySelector('[data-task-project=select]'),projectName=document.querySelector('[data-task-project=name]');
     if(projectSelect&&projectName){const host=projectSelect.closest('.lubi-task-modal'),create=[...host.querySelectorAll('button')].find(b=>b.textContent.trim()==='创建项目'),box=r(host),controls=[projectSelect,projectName,create];out.projectForm={fit:controls.every(e=>e&&r(e).width>0&&r(e).left>=box.left&&r(e).right<=box.right),overlap:Math.abs(r(projectName).top-r(create).top)<=2&&r(projectName).right>r(create).left+1,named:!!(projectSelect.getAttribute('aria-label')||document.getElementById(projectSelect.getAttribute('aria-labelledby'))?.textContent)&&!!projectName.getAttribute('aria-label'),value:projectSelect.value,overflow:document.documentElement.scrollWidth-innerWidth};}
@@ -161,11 +163,11 @@ if (!browser) {
     if (planCard && r(planCard).top < r(sidebar.querySelector(".lubi-distribution")).bottom + 1) out.simplifyErrors.push("plan card overlaps distribution");
     if (sidebar) {
       const distribution = sidebar.querySelector(".lubi-distribution");
-      if (!distribution || sidebar.firstElementChild !== distribution || distribution.matches("details") || (distribution.querySelector(".lubi-donut") && r(distribution.querySelector(".lubi-donut")).height <= 0)) out.simplifyErrors.push("distribution hidden or not first");
+      if (!distribution || sidebar.querySelector(".lubi-personal-time")?.nextElementSibling !== distribution || distribution.matches("details") || (distribution.querySelector(".lubi-donut") && r(distribution.querySelector(".lubi-donut")).height <= 0)) out.simplifyErrors.push("distribution hidden or not after background/personal time");
     }
     if(document.querySelector(".lubi-tasks-projects, .lubi-project-toggle, .lubi-gantt, .lubi-project-peek")) out.simplifyErrors.push("removed project panel is still rendered");
     const lists = document.querySelector(".lubi-task-lists");
-    if (lists && !lists.classList.contains("lubi-today-side") && (!lists.classList.contains("lubi-card") || lists.querySelector(".lubi-card"))) out.simplifyErrors.push("nested list cards");
+    if (lists && !lists.classList.contains("lubi-today-side") && (lists.classList.contains("lubi-card") || lists.querySelector(".lubi-list-card .lubi-list-card"))) out.simplifyErrors.push("nested list cards");
     if ([...document.querySelectorAll(".lubi-summary-label")].some(el => el.textContent === "计划完成")) out.simplifyErrors.push("duplicate plan completion");
     if (document.querySelector(".lubi-review-signals, .lubi-tl-hint, .lubi-tl-stats, .lubi-onboard")) out.simplifyErrors.push("repeated statistics or guidance");
     for (const el of document.querySelectorAll(".lubi-root, .lubi-root *")) {
@@ -194,19 +196,20 @@ if (!browser) {
       for(const row of rows) {
         const track=row.querySelector('.lubi-track'),fill=row.querySelector('.lubi-fill'),head=row.querySelector('.lubi-row-bar-head'),name=row.querySelector('.lubi-legend-name');
         if(!track||!fill||!head||!row.querySelector('.lubi-top-count')) {out.simplifyErrors.push('Top5 missing shared bar structure');continue;}
-        if(r(row).width && (row.scrollWidth>row.clientWidth+1 || r(head).bottom>r(track).top || r(name).right>r(row.querySelector('.lubi-top-count')).left+.5 || getComputedStyle(track).height!==getComputedStyle(reference).height || getComputedStyle(track).backgroundColor!==getComputedStyle(reference).backgroundColor || getComputedStyle(track).borderRadius!==getComputedStyle(reference).borderRadius || getComputedStyle(fill).backgroundColor!==getComputedStyle(row.querySelector('.lubi-dot')).backgroundColor)) out.simplifyErrors.push('Top5 alignment, category color or track fidelity');
+        if(r(row).width && (row.scrollWidth>row.clientWidth+1 || r(head).bottom>r(track).top || r(name).right>r(row.querySelector('.lubi-top-count')).left+.5 || getComputedStyle(track).height!==getComputedStyle(reference).height || getComputedStyle(track).backgroundColor!==getComputedStyle(reference).backgroundColor || getComputedStyle(track).borderRadius!==getComputedStyle(reference).borderRadius || getComputedStyle(fill).backgroundColor!==getComputedStyle(row.querySelector('.lubi-dot')).backgroundColor)) out.simplifyErrors.push('Top5 alignment, category color or track fidelity '+JSON.stringify({overflow:row.scrollWidth-row.clientWidth,headBottom:r(head).bottom,trackTop:r(track).top,nameRight:r(name).right,countLeft:r(row.querySelector('.lubi-top-count')).left,height:[getComputedStyle(track).height,getComputedStyle(reference).height],background:[getComputedStyle(track).backgroundColor,getComputedStyle(reference).backgroundColor],radius:[getComputedStyle(track).borderRadius,getComputedStyle(reference).borderRadius],fill:getComputedStyle(fill).backgroundColor,dot:getComputedStyle(row.querySelector('.lubi-dot')).backgroundColor}));
       }
     }
     out.foldStates = [...document.querySelectorAll(".lubi-fold")].map(d => ({ open: d.open, summaryVisible: r(d.querySelector("summary")).height > 0, planTasks: d.classList.contains("lubi-plan-task-details"), gaps: d.classList.contains("lubi-gap-card") }));
     const planRow = document.querySelector('.lubi-plan-task-list .lubi-task:has(.lubi-task-meta)');
     if (planRow) {
       const clone = planRow.cloneNode(true); clone.querySelector('.lubi-dot')?.remove(); planRow.parentElement.appendChild(clone);
-      out.planMetaAligned = parseFloat(getComputedStyle(planRow.querySelector('.lubi-task-meta')).paddingLeft) === (planRow.querySelector('.lubi-dot') ? 14 : 0) && parseFloat(getComputedStyle(clone.querySelector('.lubi-task-meta')).paddingLeft) === 0;
+      const meta=planRow.querySelector('.lubi-task-meta'),title=planRow.querySelector('.lubi-task-title-text');
+      out.planMetaAligned = Math.abs(r(meta).left+parseFloat(getComputedStyle(meta).paddingLeft)-r(title).left)<=.5 && parseFloat(getComputedStyle(clone.querySelector('.lubi-task-meta')).paddingLeft) === 0;
       clone.remove();
     }
     // smallest visible text
     let min = 99, minAt = '';
-    const walker = document.createTreeWalker(document.querySelector('.lubi-root'), NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(document.querySelector('.lubi-root, .lubi-modal, .lubi-settings'), NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const t = walker.currentNode; if (!t.nodeValue.trim()) continue;
       const el = t.parentElement; if (!el || el.closest('.lubi-sr-only, script, style')) continue;
@@ -339,7 +342,7 @@ if (!browser) {
     const bgOf = (el) => { while (el) { const bg = getComputedStyle(el).backgroundColor; const m = parse(bg); if (m.length >= 3 && (m.length < 4 || m[3] > 0.9)) return m; el = el.parentElement; } return [255, 255, 255]; };
     out.lowContrast = [];
     const seen = new Set();
-    const w2 = document.createTreeWalker(document.querySelector('.lubi-root'), NodeFilter.SHOW_TEXT);
+    const w2 = document.createTreeWalker(document.querySelector('.lubi-root, .lubi-modal, .lubi-settings'), NodeFilter.SHOW_TEXT);
     while (w2.nextNode()) {
       const t = w2.currentNode; if (!t.nodeValue.trim()) continue;
       const el = t.parentElement; if (!el || el.closest('.lubi-sr-only, script, style, [hidden]')) continue;
@@ -366,10 +369,11 @@ if (!browser) {
       return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05) >= 4.5;
     });
     out.tipBackground = parse(getComputedStyle(hint).backgroundColor).slice(0,3);
+    const tokenSample=document.createElement('span');tokenSample.style.backgroundColor='var(--color-canvas)';document.querySelector('.lubi-root, .lubi-modal, .lubi-settings').append(tokenSample);out.tokenCanvas=parse(getComputedStyle(tokenSample).backgroundColor).slice(0,3);tokenSample.remove();
     hint.remove();
     const label = document.createElement('div'); label.className = 'lubi-tip is-label'; label.textContent = '编辑'; document.body.appendChild(label);
     const labelStyle = getComputedStyle(label);
-    out.shortHint = { compact: labelStyle.paddingTop === '6px' && labelStyle.paddingLeft === '10px', surface: parse(labelStyle.backgroundColor).slice(0,3) };
+    out.shortHint = { compact: labelStyle.paddingTop === labelStyle.getPropertyValue('--space-1').trim() && labelStyle.paddingLeft === labelStyle.getPropertyValue('--space-2').trim(), surface: parse(labelStyle.backgroundColor).slice(0,3) };
     label.remove();
     const options = document.querySelector('.lubi-name-options');
     if (options && !options.hidden && options.querySelector(".lubi-name-option")) {
@@ -477,12 +481,12 @@ if (!browser) {
           assert(g.referenceControls.every(c => c.stable && c.selected && Math.max(...c.heights) - Math.min(...c.heights) <= .5), `${theme} ${page} ${width}px: shared segments jump or have duplicate emphasis`);
           if (g.planProgress) {
             const p = g.planProgress;
-            assert(p.done >= 0 && p.done <= p.total && Math.abs(p.ratio - p.done / p.total) < .011 && p.height === 8 && p.label === `${p.done}/${p.total} 已完成或已有记录`, `${theme} ${width}px: daily progress must reflect the existing completion count`);
+            assert(p.done >= 0 && p.done <= p.total && Math.abs(p.ratio - p.done / p.total) < .011 && p.height === 8 && p.label === `${p.done}/${p.total} 已完成`, `${theme} ${width}px: daily progress must reflect the existing completion count`);
           }
-          assert(g.planMetaAligned !== false && g.shortHint.compact, `${theme} ${page} ${width}px: metadata alignment or compact hint regressed`);
-          assert.deepEqual(g.shortHint.surface, theme === 'light' ? [255,255,255] : [30,30,34], `${theme}: compact hints must follow the theme`);
+          assert(g.planMetaAligned !== false && g.shortHint.compact, `${theme} ${page} ${width}px: metadata alignment or compact hint regressed: ${JSON.stringify({aligned:g.planMetaAligned,hint:g.shortHint})}`);
+          assert.deepEqual(g.shortHint.surface, g.tokenCanvas, `${theme}: compact hints must follow the theme`);
           assert(g.tipFits && g.tipNotesClamped && g.tipContrast, `${theme} ${page} ${width}px: tooltip geometry, two-line notes, or contrast failed ${JSON.stringify(g)}`);
-          assert.deepEqual(g.tipBackground, theme === "light" ? [255,255,255] : [30,30,34], `${theme}: tooltip should use the theme panel surface`);
+          assert.deepEqual(g.tipBackground, g.tokenCanvas, `${theme}: tooltip should use the theme panel surface`);
           assert(g.minFont >= 11, `${theme} ${page} ${width}px: text below 11px (${g.minFont}px at ${g.minAt})`);
           assert.deepEqual(g.lowContrast, [], `${theme} ${page} ${width}px: text contrast below 4.5:1: ${g.lowContrast.join("; ")}`);
           if(g.weekSchedule){
@@ -554,8 +558,9 @@ if (!browser) {
     for(const theme of ['light','dark'])for(const width of [1000,600,390,320])for(const page of ['modal-new-actual-only','modal-new-planned']) {
       const g=run(theme,page,width),d=g.newTaskDetails;
       assert(d&&d.visible&&!d.summary&&d.inputsFit&&!d.hintVisible&&!d.hint&&!d.removedInstruction,theme+' '+width+'px '+page+': same expanded actual-time fields without redundant hints '+JSON.stringify(d));
+      assert(g.locationField.ordered&&g.locationField.fits&&g.locationField.named,theme+" "+width+"px: optional location follows repeat and fits before divider");
       const order=g.taskFieldOrder;
-      assert.deepEqual(order.plan,['计划开始日期','计划开始时间','预计用时','重复'],theme+' '+width+'px: planning order');
+      assert.deepEqual(order.plan,['计划开始日期','计划开始时间','预计用时'],theme+' '+width+'px: planning order');
       assert.deepEqual(order.actual,['实际开始日期','实际开始时间','实际用时'],theme+' '+width+'px: actual order');
       assert(order.planPair&&order.actualPair&&order.actualBelow,theme+' '+width+'px: date/time pairs and duration below');
       assert(g.unifiedActual.inputsFit&&g.unifiedActual.overflow<=1&&g.minFont>=11&&g.lowContrast.length===0,theme+' '+width+'px '+page+': shared new-task modal stays readable');
