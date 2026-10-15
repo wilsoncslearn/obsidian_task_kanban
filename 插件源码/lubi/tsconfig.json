@@ -3,13 +3,13 @@
     "baseUrl": ".",
     "module": "ESNext",
     "target": "ES2020",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "importHelpers": false,
     "isolatedModules": true,
-    "lib": ["DOM", "ES2020", "DOM.Iterable"],
+    "lib": ["DOM", "ES2022", "DOM.Iterable"],
     "types": ["node"]
   },
   "include": ["src/**/*.ts"]

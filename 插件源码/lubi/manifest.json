@@ -2,7 +2,7 @@
   "id": "lubi",
   "name": "Lubi 柳比歇夫记录",
   "version": "1.8.0",
-  "minAppVersion": "1.4.0",
+  "minAppVersion": "1.13.7",
   "description": "柳比歇夫时间记录：每日记录、预计与实际对比、任务排期及周月年回顾。",
   "author": "wjx",
   "isDesktopOnly": false

@@ -11,15 +11,19 @@
     "test:core": "esbuild test/entry.ts --bundle --platform=node --format=esm --alias:obsidian=./test/stub-obsidian.js --outfile=test/core.mjs && node test/run.mjs && node test/planning-core.mjs && node test/task-import-core.mjs && node test/execution-core.mjs",
     "test:smoke": "esbuild src/main.ts --bundle --platform=node --format=cjs --external:obsidian --outfile=test/plugin.cjs && node test/smoke.mjs && node test/ui-interactions.mjs && node test/unified-actual.mjs && node test/planning-interactions.mjs && node test/task-json-import.mjs && node test/model-picker.mjs && node test/ai-task-location.mjs && node test/data-export.mjs && node test/projects.mjs && node test/plugin-update.mjs && esbuild test/plugin-update-entry.ts --bundle --platform=node --format=cjs --external:obsidian --outfile=test/update-core.cjs && node test/plugin-installer.mjs && node test/async-workflow.mjs && node test/monochrome.mjs && node test/productivity.mjs && node test/light-task.mjs && node test/fix-display.mjs && node test/fit-timeline.mjs",
     "test:layout": "node test/chart-layout.mjs && node test/tasks-ui-layout.mjs && node test/topbar-layout.mjs && node test/compact-task-layout.mjs && node test/settings-layout.mjs && node test/planning-layout.mjs && node test/planning-chrome-layout.mjs && node test/model-picker-layout.mjs && node test/async-workflow-layout.mjs && node test/monochrome-layout.mjs && node test/productivity-layout.mjs && node test/light-task-layout.mjs",
-    "test": "npm run test:core && npm run test:smoke && npm run test:layout"
+    "test": "npm run test:core && npm run test:smoke && npm run test:layout",
+    "check:dist": "npm run build && node scripts/check-dist.mjs"
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "esbuild": "0.24.0",
+    "@types/node": "^24.19.2",
+    "esbuild": "0.28.2",
     "jsdom": "^24.1.3",
     "lucide-static": "^1.48.0",
-    "obsidian": "latest",
+    "obsidian": "1.14.4",
     "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
