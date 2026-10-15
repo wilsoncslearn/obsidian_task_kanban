@@ -18,7 +18,7 @@ const native={readFile:fs.readFile,writeFile:fs.writeFile,rename:fs.rename,mkdte
 const backups=[];
 fs.mkdtemp=async (...args)=>{const result=await native.mkdtemp(...args);if(result.startsWith(path.join(os.tmpdir(),'Lubi-plugin-backups')+path.sep))backups.push(result);return result;};
 let serial=0,requests=0;
-const prefix='https://github.com/HP-Patience/obsidian_task_kanban/releases';
+const prefix='https://github.com/wilsoncslearn/obsidian_task_kanban/releases';
 const files=['main.js','styles.css','manifest.json'];
 const tag='1.8.0';
 const manifest={id:'lubi',version:tag,minAppVersion:'1.4.0',isDesktopOnly:false,name:'Synthetic Lubi'};

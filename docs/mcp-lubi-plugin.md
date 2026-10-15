@@ -1,6 +1,6 @@
 # Lubi 插件：维护与构建
 
-当前发布基线 **1.7.1**，本轮异步工作及 MONO 黑白改版处于未发布待验收状态，最低 Obsidian 版本在 manifest 中声明为 **1.4.0**。源码在 `插件源码/lubi/`，随 Vault 分发的安装文件在 `.obsidian/plugins/lubi/`。使用方法以根目录 README 与教学手册为准，版本变更以 CHANGELOG 为准。
+当前发布基线 **1.7.1**，1.8.0 是本地开发版（未发布），最低 Obsidian 版本在 manifest 中声明为 **1.13.7**。源码在 `插件源码/lubi/`，随 Vault 分发的安装文件在 `.obsidian/plugins/lubi/`。使用方法以根目录 README 与教学手册为准，版本变更以 CHANGELOG 为准。
 
 ## 模块与职责
 

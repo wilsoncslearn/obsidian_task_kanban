@@ -25,7 +25,7 @@ assert.equal(button().textContent, '检查更新');
 let resolveRequest;
 O.setRequestUrlHandler(options => {
   requests++;
-  assert.equal(options.url, 'https://api.github.com/repos/HP-Patience/obsidian_task_kanban/releases/latest');
+  assert.equal(options.url, 'https://api.github.com/repos/wilsoncslearn/obsidian_task_kanban/releases/latest');
   assert.equal(options.method, 'GET');
   assert.deepEqual(options.headers, { Accept: 'application/vnd.github+json' });
   assert.equal(options.body, undefined, 'no settings or credentials in request');
@@ -45,12 +45,12 @@ for (const [tag, newer] of [['1.8.0',true],['v1.10.0',true],['1.7.0',false],['1.
   assert(status().includes(newer ? '发现新版本' : '无需更新'), tag);
   assert(!button().disabled); assert.equal(button().textContent, '检查更新');
   if (newer) {
-    assert.equal(link().getAttribute('href'), 'https://github.com/HP-Patience/obsidian_task_kanban/releases/tag/'+tag);
+    assert.equal(link().getAttribute('href'), 'https://github.com/wilsoncslearn/obsidian_task_kanban/releases/tag/'+tag);
     assert(status().includes('保留 data.json')); assert(status().includes('最低 Obsidian'));
-  } else assert.equal(link().getAttribute('href'), 'https://github.com/HP-Patience/obsidian_task_kanban/releases');
+  } else assert.equal(link().getAttribute('href'), 'https://github.com/wilsoncslearn/obsidian_task_kanban/releases');
 }
 for (const [response, message] of [
-  [{status:404},'暂无正式发布版本'], [{status:403},'请求受限'], [{status:429},'请求受限'], [{status:500},'HTTP 500'],
+  [{status:404},'找不到公开的正式版本'], [{status:403},'请求受限'], [{status:429},'请求受限'], [{status:500},'HTTP 500'],
   [release('nightly'),'版本号格式无法识别'], [release('1.8.0-beta.1'),'版本号格式无法识别'],
   [release('9007199254740992.0.0'),'超出支持范围'],
   [{status:200,json:{tag_name:'1.8.0',draft:false,prerelease:true}},'发布信息无效'],

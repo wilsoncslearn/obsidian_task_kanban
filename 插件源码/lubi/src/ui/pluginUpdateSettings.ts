@@ -47,7 +47,7 @@ export function renderPluginUpdate(host: HTMLElement, app: App, manifest: Plugin
       try {
         const result = await checkPluginUpdate(manifest.version);
         state.release = result;
-        if (!result) show("暂无正式发布版本。源码提交不代表已发布更新。");
+        if (!result) show("找不到公开的正式版本：发布仓库可能是私有的，或者还没有发布。源码提交不代表已发布更新。");
         else if (!result.newer) show(compareVersions(manifest.version, result.version) > 0
           ? `无需更新：本地 ${manifest.version} 比最新正式发布 ${result.version} 更新，不会降级。`
           : `无需更新：当前 ${manifest.version} 已是最新正式版本。`);

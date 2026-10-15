@@ -9,8 +9,7 @@
 
 <p align="center">
   <img alt="Lubi source version" src="https://img.shields.io/badge/Lubi-1.8.0-5b45c9">
-  <a href="https://github.com/HP-Patience/obsidian_task_kanban/releases/latest"><img alt="release" src="https://img.shields.io/github/v/release/HP-Patience/obsidian_task_kanban?label=release&color=5b45c9"></a>
-  <img alt="Obsidian" src="https://img.shields.io/badge/Obsidian-%E2%89%A5%201.4.0-7c3aed?logo=obsidian&logoColor=white">
+  <img alt="Obsidian" src="https://img.shields.io/badge/Obsidian-%E2%89%A5%201.13.7-7c3aed?logo=obsidian&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-22a06b"></a>
 </p>
@@ -187,24 +186,28 @@
 
 ## 安装
 
-**方式一：直接使用本仓库（推荐）**
+> [!IMPORTANT]
+> 本仓库为私有仓库，仅供自用：Lubi 不在社区插件市场上架，也没有公开的 Release。
+
+**方式一：直接使用本仓库（需要仓库访问权限）**
 
 ```bash
-git clone https://github.com/HP-Patience/obsidian_task_kanban.git
+git clone https://github.com/wilsoncslearn/obsidian_task_kanban.git
 ```
 
 用 Obsidian「打开文件夹作为仓库」选中克隆下来的目录，在 *设置 → 第三方插件* 里关闭安全模式即可。Lubi 和常用插件都已配置好。
 
 **方式二：只装 Lubi 到你自己的仓库**
 
-1. 从 [Releases](https://github.com/HP-Patience/obsidian_task_kanban/releases/latest) 下载 `main.js`、`manifest.json`、`styles.css`
-   （如需仓库当前版本，直接拷贝本仓库的 `.obsidian/plugins/lubi/` 三个分发文件；Release 的版本以其说明为准）；
+1. 从本仓库的 `.obsidian/plugins/lubi/` 拷贝 `main.js`、`manifest.json`、`styles.css` 三个分发文件；
 2. 放到你的仓库的 `.obsidian/plugins/lubi/` 目录下；
 3. 重启 Obsidian，在 *设置 → 第三方插件* 中启用 **Lubi 柳比歇夫记录**。
 
-> 需要 Obsidian ≥ 1.4.0。
+> 需要 Obsidian ≥ 1.13.7。
 
 ### 更新插件
+
+仓库保持私有时，GitHub 接口对未登录请求返回 404，「检查更新」会提示“找不到公开的正式版本”。这时在仓库目录执行 `git pull` 即可：三个分发文件随仓库一起更新，重启 Obsidian 后生效。下面的一键更新只在仓库公开、并且发布了带校验信息的 Release 时可用。
 
 在 **设置 → Lubi → 插件更新** 点击「检查更新」。本地比正式 Release 新时不会降级；发现新版后，桌面本地 Vault 可点击「更新至…」并确认安装。附件必须包含三个分发文件及 GitHub SHA-256 校验信息；安装前校验插件 ID、版本和最低 Obsidian 版本，先备份再替换，异常时回滚。安装完成后**重启 Obsidian**生效，避免通过非公开接口强制卸载正在使用的插件。
 

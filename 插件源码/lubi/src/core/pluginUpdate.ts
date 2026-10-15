@@ -1,7 +1,7 @@
 import { requestUrl } from "obsidian";
 
-export const RELEASES_URL = "https://github.com/HP-Patience/obsidian_task_kanban/releases";
-const RELEASE_API = "https://api.github.com/repos/HP-Patience/obsidian_task_kanban/releases/latest";
+export const RELEASES_URL = "https://github.com/wilsoncslearn/obsidian_task_kanban/releases";
+const RELEASE_API = "https://api.github.com/repos/wilsoncslearn/obsidian_task_kanban/releases/latest";
 
 function versionParts(version: string): number[] {
   const match = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(version);
