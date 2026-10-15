@@ -1,0 +1,27 @@
+
+/* ---------- Async work: personal records and manual Agent state stay separate ---------- */
+.lubi-execution-badge { display: flex; flex-wrap: wrap; align-items: center; gap:var(--space-1) var(--space-2); margin-top:var(--space-1); color: var(--text-normal); font-size: var(--font-ui-smaller); }
+.lubi-execution-badge > .lubi-icon svg { width: 13px; height: 13px; }
+.lubi-execution-badge.is-review { font-weight: var(--weight-strong); }
+.lubi-background-runtime { color: var(--text-muted); font-weight: var(--weight-regular); overflow-wrap: anywhere; }
+.lubi-attention-card { border-inline-start: 3px solid var(--interactive-accent); }
+.lubi-execution-note { margin:0 0 var(--space-2); line-height: 1.5; overflow-wrap: anywhere; }
+.lubi-execution-list { max-height: 420px; max-height: min(45vh, 420px); overflow-y: auto; min-width: 0; }
+.lubi-execution-item { padding:var(--space-2) 0; min-width: 0; }
+.lubi-execution-item + .lubi-execution-item { border-top: 1px solid var(--background-modifier-border); }
+.lubi-root button.lubi-execution-title.lubi-btn:not(.clickable-icon) { display: block; width: 100%; height: auto; min-height: 32px; padding:var(--space-1) 0; text-align: left; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; border: none; background: transparent; color: var(--text-normal); }
+.lubi-execution-meta { display: flex; flex-wrap: wrap; gap:var(--space-1) var(--space-2); margin-top:var(--space-1); color: var(--text-muted); font-size: var(--font-ui-smaller); }
+.lubi-execution-actions { display: flex; flex-wrap: wrap; align-items: center; gap:var(--space-1); margin-top:var(--space-2); }
+.lubi-root .lubi-execution-actions button.lubi-btn:not(.clickable-icon) { height: auto; min-height: 32px; white-space: normal; }
+.lubi-review-accept { border-color: var(--interactive-accent); color: var(--text-normal); }
+.lubi-background-card > summary { cursor: pointer; min-height: 32px; line-height: 1.5; }
+.lubi-background-card > .lubi-execution-note { margin-top:var(--space-2); }
+.lubi-task-modal [data-actual-action][hidden] { display: none !important; }
+@media (max-width: 480px) {
+  .lubi-execution-actions .lubi-btn { flex: 1 1 auto; }
+  .lubi-execution-list { max-height: 50vh; }
+}
+
+@media (pointer: coarse) {
+  .lubi-root .lubi-execution-actions button.lubi-btn:not(.clickable-icon) { min-height: 44px; }
+}

@@ -1,0 +1,54 @@
+
+/* Display fixes: untimed chips, single-line task rows, folded done, dated planning nav. */
+.lubi-daily-unset { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
+.lubi-daily-unset-label { font-size: var(--lubi-fs-sm); color: var(--text-muted); font-weight: var(--weight-strong); }
+.lubi-daily-unset-chip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 10px; border: 1px solid var(--lubi-border); border-radius: 999px; background: var(--background-secondary); cursor: pointer; font-size: var(--lubi-fs-sm); }
+.lubi-daily-unset-chip:hover { border-color: var(--lubi-accent); }
+.lubi-plan-task-list .lubi-task, .lubi-selected-day-list .lubi-task, .lubi-plan-range-list .lubi-task { flex-wrap: nowrap; align-items: flex-start; }
+.lubi-plan-task-list .lubi-task-actions, .lubi-selected-day-list .lubi-task-actions, .lubi-plan-range-list .lubi-task-actions { flex-shrink: 0; margin-left: auto; }
+.lubi-root .lubi-task-actions .lubi-task-start { white-space: nowrap; }
+.lubi-done-fold { border-top: 1px solid var(--lubi-border); margin-top: 4px; }
+.lubi-done-fold > summary { cursor: pointer; padding: 8px 6px; font-size: var(--lubi-fs-sm); color: var(--text-muted); }
+.lubi-planning-nav { border: 1px solid var(--lubi-border); border-radius: 999px; padding: 2px 4px; background: var(--background-primary); gap: 2px; }
+.lubi-nav-date { font-size: var(--lubi-fs-sm); font-weight: var(--weight-strong); white-space: nowrap; padding: 0 4px; font-variant-numeric: tabular-nums; }
+.lubi-planning-nav .lubi-nav-today { white-space: nowrap; }
+/* Task rows stay on one line at every width: title gets the space, record stays top-right. */
+.lubi-root .lubi-task { flex-wrap: nowrap; }
+.lubi-root .lubi-task-body { flex: 1 1 auto; min-width: 0; }
+.lubi-root .lubi-task-title-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.lubi-root .lubi-task-actions { flex: 0 0 auto; align-self: flex-start; }
+.lubi-root .lubi-task-lists .lubi-task { flex-wrap: nowrap; }
+@container lubi (max-width: 540px) {
+  .lubi-root .lubi-task-lists .lubi-task, .lubi-root .lubi-task { flex-wrap: nowrap; }
+  .lubi-root .lubi-task-actions { flex-basis: auto; margin-top: calc((var(--lubi-task-line, 18px) - var(--lubi-task-action-size, 32px)) / 2); margin-left: auto; margin-right: 0; justify-content: flex-end; }
+  .lubi-root .lubi-task-body { flex-basis: auto; }
+}
+.lubi-root .lubi-task-lists .lubi-task-body { flex: 1 1 auto; min-width: 0; }
+.lubi-root .lubi-task-lists .lubi-task-actions { flex: 0 0 auto; margin-top: calc((var(--lubi-task-line, 18px) - var(--lubi-task-action-size, 28px)) / 2); margin-left: auto; margin-right: calc(-1 * var(--lubi-task-pad-x, 6px)); justify-content: flex-end; }
+
+/* Planning head: navigation shares the first row (far right); summary keeps its own second row. */
+.lubi-planning-head .lubi-planning-nav { order: 4; flex-shrink: 0; margin-left: auto; }
+.lubi-planning-head .lubi-today-summary { order: 5; }
+.lubi-planning-head .lubi-schedule-range { min-width: 0; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Calendar day: the timeline keeps the tuned hour spacing but scrolls inside its fixed-height panel (height rule above), so the page no longer grows with the full day. */
+/* Calendar day: the first card pair shares row 1 and aligns on both edges; the timeline spans the remaining rows and side cards keep their own height.
+   Extra timeline height goes to the final 1fr row, never between or into the side cards. */
+@supports (grid-template-rows: subgrid) {
+  .lubi-root .lubi-calendar-day { row-gap: var(--space-4); grid-template-rows: repeat(15, auto) 1fr; }
+  .lubi-root .lubi-calendar-day .lubi-today-main,
+  .lubi-root .lubi-calendar-day .lubi-today-side { display: grid; grid-template-rows: subgrid; grid-row: span 16; align-content: start; }
+  .lubi-root .lubi-calendar-day .lubi-today-main > .lubi-timeline-wrap { grid-row: 2 / -1; }
+}
+@media (max-width: 900px) {
+  .lubi-root .lubi-calendar-day { grid-template-rows: none; }
+  .lubi-root .lubi-calendar-day .lubi-today-main,
+  .lubi-root .lubi-calendar-day .lubi-today-side { display: flex; grid-row: auto; }
+}
+@container lubi (max-width: 900px) {
+  .lubi-root .lubi-calendar-day { grid-template-rows: none; }
+  .lubi-root .lubi-calendar-day .lubi-today-main,
+  .lubi-root .lubi-calendar-day .lubi-today-side { display: flex; grid-row: auto; }
+}
+.lubi-root .lubi-calendar-day .lubi-today-main > *,
+.lubi-root .lubi-calendar-day .lubi-today-side > * { align-self: stretch; box-sizing: border-box; }

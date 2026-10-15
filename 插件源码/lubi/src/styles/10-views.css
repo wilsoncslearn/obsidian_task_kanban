@@ -1,0 +1,218 @@
+
+/* History names: fixed five-row viewport, scroll inside the list, no extra modal. */
+.lubi-name-combobox { position: relative; width: 100%; min-width: 0; }
+.lubi-name-combobox > input { width: 100%; }
+.lubi-name-options { --lubi-name-row-height: calc(var(--space-8) + var(--space-1)); position: absolute; top: calc(100% + var(--space-1)); left: 0; right: 0; z-index: 40; max-height: calc(5 * var(--lubi-name-row-height) + 2 * var(--border-width)); overflow-y: auto; overscroll-behavior: contain; background: var(--background-primary); border: 1px solid var(--background-modifier-border); border-radius: 6px; box-shadow: var(--shadow-default); padding:0; box-sizing: border-box; }
+.lubi-name-options[hidden] { display: none; }
+.lubi-name-option { display: flex; align-items: center; height: var(--lubi-name-row-height, 36px); box-sizing: border-box; padding:0 var(--space-2); color: var(--text-normal); font-size: var(--font-ui-small); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lubi-name-option:hover, .lubi-name-option[aria-selected="true"] { background: var(--background-modifier-hover); }
+
+/* Item ranking shares category rows/tracks; only long names and secondary counts differ. */
+.lubi-review-top .lubi-row-bar-head .lubi-legend-name { flex: 1; min-width: 0; }
+.lubi-review-top .lubi-top-count { font-size: var(--lubi-fs-xs); white-space: nowrap; }
+
+/* Shared schedule region: Gantt is an alternative view, not a project panel. */
+.lubi-schedule-switch { flex-shrink: 0; }
+.lubi-gantt-card { min-width: 0; }
+.lubi-gantt-card > .lubi-panel-head { flex-wrap: wrap; }
+.lubi-root .lubi-tasks.is-gantt .lubi-tasks-week { display: block; min-width: 0; }
+.lubi-root .lubi-tasks.is-gantt .lubi-agenda-host { display: none; }
+.lubi-gantt-scroll { --gantt-name-w: 160px; --gantt-day-w: 34px; max-width: 100%; max-height: 580px; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--lubi-border); border-radius: 6px; }
+.lubi-gantt-table { min-width: calc(var(--gantt-name-w) + var(--gantt-count, 7) * var(--gantt-day-w)); }
+.lubi-gantt-heading, .lubi-gantt-row { display: grid; grid-template-columns: var(--gantt-name-w) minmax(0, 1fr); min-height: 38px; }
+.lubi-gantt-heading { min-height: 44px; position: sticky; top: 0; isolation: isolate; z-index: 7; background: var(--background-secondary); }
+.lubi-gantt-row { border-top: 1px solid var(--lubi-border); }
+.lubi-gantt-name { position: sticky; left: 0; z-index: 5; display: flex; align-items: center; gap:var(--space-1); min-width: 0; padding: 4px 6px 4px calc(6px + var(--gantt-indent, 0px)); border-right: 1px solid var(--lubi-border); background: var(--background-primary); }
+.lubi-gantt-heading > .lubi-gantt-name { justify-content: center; z-index: 8; background: var(--background-secondary); font-size: var(--font-ui-small); font-weight: var(--weight-strong); }
+.lubi-root button.lubi-gantt-title:not(.clickable-icon) { min-width: 0; flex: 1; height: auto; padding:0; border: 0; box-shadow: var(--shadow-default); background: transparent; text-align: left; color: var(--text-normal); font-size: var(--font-ui-small); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lubi-gantt-spacer { width: 28px; flex-shrink: 0; }
+.lubi-gantt-collapse { flex-shrink: 0; }
+.lubi-gantt-dates { display: grid; grid-template-columns: repeat(var(--gantt-count, 7), minmax(0, 1fr)); }
+.lubi-root button.lubi-gantt-date:not(.clickable-icon) { height: auto; min-height: 38px; padding:var(--space-1); border: 0; border-right: 1px solid var(--lubi-border); border-radius: 0; box-shadow: var(--shadow-default); background: transparent; font-size: var(--text-code); white-space: normal; line-height: 1.35; }
+.lubi-root button.lubi-gantt-date.is-today:not(.clickable-icon) { background: color-mix(in srgb, var(--lubi-info) 12%, var(--background-secondary)); font-weight: var(--weight-strong); }
+.lubi-gantt-track { position: relative; min-width: 0; min-height: 38px; }
+.lubi-gantt-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--gantt-count, 7), minmax(0, 1fr)); pointer-events: none; }
+.lubi-gantt-grid > div { border-right: 1px solid var(--lubi-border); }
+.lubi-gantt-grid > .is-weekend:not(.is-future) { background: var(--background-secondary); }
+.lubi-gantt-track { background: var(--background-primary); }
+.lubi-gantt-today[hidden] { display: none; }
+.lubi-gantt-today { position: absolute; top: -1px; bottom: 0; width: 0; border-left: 1px solid var(--lubi-info); pointer-events: none; z-index: 1; }
+.lubi-gantt-bar { position: absolute; top: 8px; height: 22px; border-radius: 4px; overflow: hidden; z-index: 2; cursor: pointer; background: color-mix(in srgb, var(--chip) 18%, var(--background-primary)); border-left: 0; box-shadow: var(--shadow-default); color: var(--text-normal); box-sizing: border-box; }
+.lubi-gantt-bar.is-editable { cursor: grab; touch-action: none; user-select: none; }
+.lubi-gantt-bar.is-summary { border: 1px solid var(--chip); background: var(--background-secondary); }
+.lubi-gantt-bar.is-done { background: color-mix(in srgb, var(--chip) 60%, var(--text-normal)); border-color: var(--chip); color: var(--background-primary); }
+.lubi-gantt-bar.is-done .lubi-gantt-handle::after { background: currentColor; }
+.lubi-gantt-bar-label { display: inline-block; width: max-content; max-width: none; margin:0 var(--space-2); padding:var(--space-1) var(--space-1); visibility: hidden; white-space: nowrap; font-size: var(--text-code); line-height: 16px; pointer-events: none; }
+.lubi-gantt-handle { position: absolute; top: 0; bottom: 0; width: min(9px, 50%); cursor: ew-resize; touch-action: none; }
+.lubi-gantt-handle.is-start { left: 0; }
+.lubi-gantt-handle.is-end { right: 0; }
+.lubi-gantt-handle::after { content: ""; position: absolute; top: 5px; bottom: 5px; width: 2px; left: 2px; background: var(--chip); border-radius: 1px; }
+.lubi-gantt-bar.is-dragging { cursor: grabbing; z-index: 4; }
+.lubi-gantt-empty { padding:var(--space-4) var(--space-3); font-size: var(--font-ui-small); }
+@container (max-width: 600px) { .lubi-gantt-scroll { --gantt-name-w: 140px; } }
+@media (prefers-reduced-motion: reduce) { .lubi-gantt-bar { transition: none; } }
+
+.lubi-gantt-title > span:not(.lubi-sr-only) { display: block; width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lubi-root button.lubi-gantt-title { justify-content: flex-start; }
+.lubi-root .lubi-gantt-collapse { width: 22px; min-width: 22px; }
+.lubi-gantt-spacer { width: 22px; }
+
+/* Daily Gantt: a full 00:00–24:00 first-row axis, with endpoint gutters. */
+.lubi-daily-gantt-scroll .lubi-gantt-table { min-width: calc(var(--gantt-name-w) + 24 * var(--gantt-day-w) + 40px); }
+.lubi-daily-gantt-axis { position: relative; height: 44px; background: var(--background-secondary); }
+.lubi-daily-gantt-tick { position: absolute; top: 7px; transform: translateX(-50%); font-size: var(--text-code); white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-normal); }
+.lubi-daily-gantt-tick::after { content: ""; position: absolute; top: 21px; left: 50%; height: 10px; border-left: 1px solid var(--lubi-border); }
+.lubi-daily-gantt-plot { position: absolute; left: 20px; right: 20px; top: 0; bottom: 0; }
+.lubi-daily-gantt-plot .lubi-gantt-grid { grid-template-columns: repeat(24, minmax(0, 1fr)); }
+.lubi-daily-gantt-plot .lubi-gantt-bar { min-width: 2px; }
+.lubi-daily-gantt-plot .lubi-gantt-bar.is-point { border-radius: 3px; }
+.lubi-daily-gantt-unset { display: inline-block; padding-top:var(--space-2); font-size: var(--font-ui-small); }
+
+.lubi-gantt-card .lubi-gantt-row.is-done .lubi-gantt-title { text-decoration: none; color: var(--text-normal); }
+
+.lubi-review-empty-note { font-size: var(--text-small); }
+.lubi-review-empty-detail { padding:var(--space-2) 0; }
+
+/* Actual time reuses the task form; no separate time-entry tab or modal. */
+.lubi-task-modal .lubi-plan-grid > .lubi-plan-full-field { grid-column: 1 / -1; }
+.lubi-task-modal .lubi-plan-grid > .lubi-plan-start-field { grid-column: 2; }
+.lubi-task-modal .lubi-actual-details > .lubi-actual-field { margin-top:var(--space-3); }
+.lubi-actual-hint { margin:var(--space-2) 0; font-size: var(--text-small); line-height: 1.5; }
+.lubi-actual-details { margin:var(--space-2) 0 var(--space-3); }
+
+/* Unified planning views: keep controls visible at every width, scroll only the plot. */
+.lubi-root .lubi-planning-head { flex-wrap: wrap; gap:var(--space-2) var(--space-3); margin-bottom:0; }
+.lubi-planning-head .lubi-seg { flex-shrink: 0; }
+.lubi-root .lubi-planning-top { grid-template-columns: minmax(0, 1fr) 300px; }
+/* 日历·日复用每日页两张摘要卡，不嵌套大卡或挤压环形图。 */
+.lubi-calendar-day { min-width: 0; }
+.lubi-calendar-day .lubi-today-main, .lubi-calendar-day .lubi-today-side { grid-row: auto; }
+.lubi-planning-head .lubi-today-summary { min-width: 0; }
+.lubi-planning-head .lubi-summary-item { white-space: nowrap; }
+.lubi-root .lubi-calendar-day .lubi-timeline-scroll { height: max(320px, calc(var(--lubi-panel-height, 840px) - 180px)); }
+.lubi-root .lubi-planning.is-calendar-day .lubi-task-lists { gap: var(--lubi-gap-3); }
+.lubi-root .lubi-planning.is-calendar-day .lubi-task-lists > .lubi-list-card { margin-top:0; padding-top: var(--lubi-gap-4); border: 1px solid var(--lubi-line); }
+.lubi-root .lubi-planning .lubi-planning-main,
+.lubi-root .lubi-planning .lubi-week-card { display: block; min-width: 0; }
+.lubi-planning .lubi-task-meta { font-size: var(--text-code); }
+.lubi-root .lubi-planning .lubi-week { grid-template-columns: 48px repeat(var(--lubi-calendar-days, 7), minmax(0, 1fr)) var(--lubi-week-sbw, 0px); }
+.lubi-root .lubi-planning .lubi-week-body { grid-template-columns: 48px repeat(var(--lubi-calendar-days, 7), minmax(0, 1fr)); box-sizing: border-box; padding-top:var(--space-2); padding-bottom:var(--space-3); }
+.lubi-planning .lubi-week-hour:first-child { transform: translateY(-50%); }
+.lubi-planning .lubi-week-hour.is-day-end { transform: translateY(-50%); }
+.lubi-planning .lubi-wblock.is-done { opacity: 1; --chip: var(--text-muted); color: var(--text-muted); background: var(--background-secondary); }
+.lubi-planning .lubi-wblock.is-done .lubi-wblock-title { text-decoration: line-through; }
+.lubi-month-scroll { overflow-x: auto; }
+.lubi-month-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 630px; border-left: 1px solid var(--lubi-border); border-top: 1px solid var(--lubi-border); }
+.lubi-month-weekday { padding:var(--space-2) var(--space-1); text-align: center; font-size: var(--text-small); color: var(--text-muted); border-bottom: 1px solid var(--lubi-border); }
+.lubi-month-day { min-width: 0; min-height: 108px; padding:var(--space-1); border-right: 1px solid var(--lubi-border); border-bottom: 1px solid var(--lubi-border); }
+.lubi-month-day.is-outside { background: var(--background-secondary); }
+.lubi-root button.lubi-month-date:not(.clickable-icon) { min-height: 28px; height: 28px; padding:var(--space-1) var(--space-2); margin-bottom:var(--space-1); border: 0; box-shadow: var(--shadow-default); background: transparent; font-size: var(--text-small); }
+.lubi-month-day.is-outside .lubi-month-date { color: var(--text-muted); }
+.lubi-root .lubi-month-day.is-selected { outline: 1px solid var(--lubi-accent); outline-offset: -1px; }
+.lubi-root .lubi-month-day.is-today .lubi-month-date { color: var(--text-accent); font-weight: var(--weight-strong); }
+.lubi-root button.lubi-month-task:not(.clickable-icon) { display: flex; align-items: flex-start; justify-content: flex-start; gap:var(--space-1); width: 100%; min-height: 26px; height: auto; padding:var(--space-1); margin:var(--space-1) 0; border: 0; border-left: 2px solid var(--chip); border-radius: 3px; box-shadow: var(--shadow-default); background: var(--background-secondary); color: var(--text-normal); font-size: var(--text-code); text-align: left; white-space: normal; }
+.lubi-month-task .lubi-dot { margin-top:var(--space-1); flex-shrink: 0; }
+.lubi-month-task-time { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.lubi-month-task-title { min-width: 0; overflow-wrap: anywhere; line-height: 1.4; }
+.lubi-root button.lubi-month-task.is-done:not(.clickable-icon) { --chip: var(--text-muted); color: var(--text-muted); }
+.lubi-month-task.is-done .lubi-month-task-title { text-decoration: line-through; }
+.lubi-month-day.is-drop, .lubi-plan-date-group.is-drop, .lubi-plan-list-empty.is-drop { outline: 1px dashed var(--lubi-info); outline-offset: -2px; }
+.lubi-plan-date-group + .lubi-plan-date-group { margin-top:var(--space-3); }
+.lubi-root .lubi-plan-list-date { display: block; height: auto; margin:0 0 var(--space-1); padding:var(--space-1) 0; border: 0; box-shadow: var(--shadow-default); background: transparent; color: var(--text-muted); font-size: var(--text-small); font-weight: var(--weight-strong); text-align: left; }
+.lubi-plan-list-parent { display: block; font-size: var(--text-code); overflow-wrap: anywhere; }
+.lubi-plan-list-empty { padding:var(--space-4) 0; font-size: var(--text-small); }
+.lubi-plan-range-list .lubi-task { --lubi-task-pad-x: 0px; padding: 7px var(--lubi-task-pad-x); }
+@container (max-width: 900px) {
+  .lubi-root .lubi-planning-top { grid-template-columns: minmax(0, 1fr); }
+  .lubi-planning-main { grid-row: 1; }
+  .lubi-planning-head .lubi-schedule-range { margin-left:auto; }
+  .lubi-planning .lubi-week { min-width: 660px; }
+  .lubi-planning .lubi-week.is-single-day { min-width: 0; }
+  .lubi-planning .lubi-week-card { overflow-x: auto; }
+}
+@supports not (container-type: inline-size) {
+  @media (max-width: 900px) {
+    .lubi-root .lubi-planning-top { grid-template-columns: minmax(0, 1fr); }
+    .lubi-planning-main { grid-row: 1; }
+    .lubi-planning .lubi-week-card { overflow-x: auto; }
+    .lubi-planning .lubi-week { min-width: 660px; }
+  }
+}
+
+/* Keep hidden accessible labels inside horizontally scrollable calendars. */
+.lubi-planning .lubi-week, .lubi-month-calendar { position: relative; }
+.lubi-root .lubi-planning .lubi-wblock.is-done .lubi-wblock-title::before { content: none; }
+.lubi-root .lubi-planning button.lubi-allday-chip.is-done:not(.clickable-icon) { --chip: var(--text-muted); color: var(--text-muted); background: var(--background-secondary); text-decoration: line-through; opacity: 1; }
+
+/* JSON exchange stays local, using the existing modal and settings surfaces. */
+.lubi-json-import-modal .lubi-json-import-input, .lubi-settings .lubi-json-prompt { width: 100%; min-height: 200px; box-sizing: border-box; resize: vertical; font-family: var(--font-monospace, monospace); font-size: var(--text-small); line-height: 1.5; }
+.lubi-json-import-modal { width: min(620px, calc(100vw - 24px)); }
+.lubi-json-import-modal .lubi-form-error[hidden] { display: none; }
+
+/* Settings model candidates use theme tokens, not the native OS datalist. */
+.lubi-settings .lubi-model-picker { display: grid; grid-template-columns: minmax(0, 1fr) 30px; gap:0; width: 100%; min-width: 0; text-align: left; }
+.lubi-settings .lubi-settings-section .lubi-model-picker > input[type="text"] { grid-column: 1; grid-row: 1; width: 100%; min-width: 0; height: 30px; box-sizing: border-box; border-radius: 6px 0 0 6px; }
+.lubi-settings button.lubi-model-toggle { grid-column: 2; grid-row: 1; width: 30px; height: 30px; padding:0; border: 1px solid var(--background-modifier-border); border-left: 0; border-radius: 0 6px 6px 0; background: var(--background-primary); color: var(--text-normal); }
+.lubi-settings .lubi-model-options { grid-column: 1 / -1; width: 100%; min-width: 0; max-height: 180px; overflow-y: auto; overscroll-behavior: contain; margin-top:var(--space-1); border: 1px solid var(--background-modifier-border); border-radius: 6px; box-sizing: border-box; background: var(--background-primary); color: var(--text-normal); }
+.lubi-model-options[hidden] { display: none; }
+.lubi-model-option { display: flex; align-items: center; min-height: 36px; padding:var(--space-1) var(--space-2); box-sizing: border-box; overflow-wrap: anywhere; font-size: var(--text-ui); text-align: left; cursor: pointer; }
+.lubi-model-option:hover, .lubi-model-option[aria-selected="true"] { background: var(--background-modifier-hover); }
+.lubi-model-empty { padding:var(--space-2); font-size: var(--text-small); color: var(--text-muted); }
+
+.lubi-task-modal [data-task-project="name"] { flex: 1; width: auto; min-width: 0; }
+
+.lubi-gantt-project-heading { display: grid; grid-template-columns: var(--gantt-name-w) minmax(0, 1fr); min-height: 28px; border-top: 1px solid var(--lubi-border); background: var(--background-secondary); }
+.lubi-gantt-project-heading > .lubi-gantt-name { justify-content: center; text-align: center; background: var(--background-secondary); font-size: var(--font-ui-small); font-weight: var(--weight-strong); overflow-wrap: anywhere; }
+
+/* Project labels span their task group at the left, rather than taking a heading row. */
+.lubi-gantt-scroll { --gantt-project-w: 76px; }
+.lubi-gantt-table { min-width: calc(var(--gantt-project-w) + var(--gantt-name-w) + var(--gantt-count, 7) * var(--gantt-day-w)); }
+.lubi-daily-gantt-scroll .lubi-gantt-table { min-width: calc(var(--gantt-project-w) + var(--gantt-name-w) + 24 * var(--gantt-day-w) + 40px); }
+.lubi-gantt-heading { grid-template-columns: var(--gantt-project-w) var(--gantt-name-w) minmax(0, 1fr); }
+.lubi-gantt-project-column { position: sticky; left: 0; z-index: 9; display: flex; align-items: center; justify-content: center; background: var(--background-secondary); border-right: 1px solid var(--lubi-border); font-size: var(--font-ui-small); font-weight: var(--weight-strong); }
+.lubi-gantt-name { left: var(--gantt-project-w); }
+.lubi-gantt-project-group { display: grid; grid-template-columns: var(--gantt-project-w) minmax(0, 1fr); }
+.lubi-gantt-project-tasks { min-width: 0; }
+.lubi-gantt-project-heading { display: flex; position: sticky; left: 0; z-index: 6; min-width: 0; min-height: 0; contain: size; align-items: center; border-right: 1px solid var(--lubi-border); }
+.lubi-gantt-project-heading > .lubi-gantt-name { position: static; flex: 1; max-height: 100%; box-sizing: border-box; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding:var(--space-1) var(--space-1); border: 0; line-height: 1.3; }
+.lubi-gantt-today { z-index: 10; }
+
+/* Long local backup locations must remain readable on narrow update settings. */
+.lubi-settings [data-lubi-update-status] { overflow-wrap: anywhere; }
+.lubi-settings [data-lubi-update-link] { color: var(--text-normal); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Task form sections and individually outlined optional controls. */
+.lubi-task-modal .lubi-task-divider { border: 0; border-top: 1px solid var(--lubi-border); margin:var(--space-3) 0; }
+.lubi-task-modal .lubi-extras-toggles { margin-left:0; gap:var(--space-1); }
+.lubi-modal.lubi-task-modal .lubi-extras-toggles button.lubi-ghost-btn:not(.clickable-icon),
+.lubi-modal.lubi-task-modal .lubi-modal-actions button.lubi-btn-ghost:not(.clickable-icon) { border: 1px solid var(--lubi-border); border-radius: var(--lubi-radius-s); }
+.lubi-modal.lubi-task-modal .lubi-extras-toggles button.lubi-ghost-btn:hover,
+.lubi-modal.lubi-task-modal .lubi-modal-actions button.lubi-btn-ghost:hover { border-color: var(--lubi-accent); }
+
+/* Center the weekday; align the smaller month/day label to its right at the bottom. */
+.lubi-root button.lubi-week-day-button:not(.clickable-icon) { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; padding:var(--space-1) var(--space-1); }
+.lubi-root .lubi-week-dow { grid-column: 2; grid-row: 1; font-size: var(--font-ui-small); line-height: 1.4; }
+.lubi-root .lubi-week-date { grid-column: 3; grid-row: 1; justify-self: start; margin-left:var(--space-1); }
+.lubi-root .lubi-week-day.is-today .lubi-week-dow { color: color-mix(in srgb, var(--lubi-info) 70%, var(--text-normal)); }
+
+/* Keep centered weekdays and full dates inside narrow weekly columns. */
+.lubi-root .lubi-planning .lubi-week:not(.is-single-day) { min-width: 800px; }
+.lubi-root .lubi-planning .lubi-week-card { overflow-x: auto; }
+
+/* Compact task entry without concealing overflow on short screens. */
+.lubi-modal.lubi-task-modal { padding:var(--space-3) var(--space-6) var(--space-3); }
+.lubi-task-modal::before { content: none; }
+.lubi-task-modal .modal-title { margin-bottom:var(--space-2); }
+.lubi-task-modal .modal-content { gap:var(--space-1); }
+.lubi-task-modal .lubi-field { gap:var(--space-1); }
+.lubi-task-modal .lubi-grid { gap:var(--space-2); }
+.lubi-task-modal input:is([type="text"], [type="time"], [type="date"], [type="number"]),
+.lubi-task-modal select { height: 32px; }
+.lubi-task-modal .lubi-task-divider { margin:0; }
+.lubi-task-modal .lubi-actual-details { margin:0; }
+.lubi-task-modal .lubi-actual-details > .lubi-actual-field { margin-top:var(--space-2); }
+.lubi-task-modal .lubi-modal-actions { margin-top:0; padding-top:var(--space-2); }
+@media (pointer: coarse) {
+  .lubi-task-modal input:is([type="text"], [type="time"], [type="date"], [type="number"]),
+  .lubi-task-modal select { min-height: 44px; }
+}

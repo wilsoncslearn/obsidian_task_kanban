@@ -1,0 +1,101 @@
+
+
+/* ---------- MONO integration: hierarchy, named controls and opt-in completion ---------- */
+.lubi-root, .lubi-modal, .lubi-settings, .lubi-tip, .lubi-notice {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  line-height: var(--leading-body);
+}
+.lubi-root { font-size: var(--text-body); }
+.lubi-root *, .lubi-modal *, .lubi-settings * { box-sizing: border-box; }
+.lubi-root :is(button, input, select, textarea), .lubi-modal :is(button, input, select, textarea), .lubi-settings :is(button, input, select, textarea) { font-family: var(--font-sans); accent-color: var(--color-ink); }
+.lubi-root :is(button, input, select, textarea):focus-visible, .lubi-modal :is(button, input, select, textarea):focus-visible, .lubi-settings :is(button, input, select, textarea):focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); box-shadow: var(--shadow-default); }
+/* 深色填充的按钮、已选项和勾选框上同色描边看不见：内侧补一圈底色，键盘焦点仍然可见。 */
+:is(.lubi-root, .lubi-modal, .lubi-settings, .lubi-notice) :is(.mod-cta, .lubi-btn-danger, .lubi-review-accept, [aria-pressed="true"], .is-enabled, input:checked):focus-visible { box-shadow: inset 0 0 0 calc(var(--focus-width) + 1px) var(--color-canvas); }
+.lubi-root .lubi-btn, .lubi-modal .lubi-btn, .lubi-root .lubi-icon-btn, .lubi-modal .lubi-icon-btn { border-radius: var(--radius-sm); box-shadow: var(--shadow-default); }
+.lubi-root .lubi-btn-danger, .lubi-modal .lubi-btn-danger { background: var(--color-ink); color: var(--color-on-accent); border-color: var(--color-ink); }
+.lubi-root .lubi-card { border-radius: var(--radius-md); box-shadow: var(--shadow-default); }
+.lubi-root .lubi-body { padding: var(--space-6) var(--space-8) var(--space-8); }
+.lubi-root .lubi-seg, .lubi-modal .lubi-seg { border-radius: var(--radius-sm); border: var(--border-width) solid var(--color-border); background: var(--color-canvas); padding: var(--space-1); }
+.lubi-root .lubi-seg-item, .lubi-modal .lubi-seg-item { border-radius: var(--radius-sm); font-weight: var(--weight-medium); box-shadow: var(--shadow-default); }
+.lubi-root .lubi-seg-item[aria-pressed="true"], .lubi-modal .lubi-seg-item[aria-pressed="true"] { background: var(--color-ink); color: var(--color-on-accent); box-shadow: var(--shadow-default); }
+.lubi-root .lubi-panel-title { font-size: var(--text-title); font-weight: var(--weight-strong); }
+.lubi-plan-intro { margin-bottom: var(--space-6); }
+.lubi-plan-overline { color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-code); letter-spacing: .12em; margin-bottom: var(--space-2); }
+.lubi-plan-heading { font-size: var(--text-heading); font-weight: var(--weight-strong); line-height: var(--leading-heading); letter-spacing: -.03em; margin: 0 0 var(--space-3); }
+.lubi-plan-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); }
+.lubi-plan-metric { min-width: 0; border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); background: var(--color-canvas); }
+.lubi-plan-metric-label { font-size: var(--text-ui); color: var(--color-muted); }
+.lubi-plan-metric-value { font-family: var(--font-mono); font-size: var(--text-heading); font-weight: var(--weight-strong); line-height: var(--leading-heading); margin: var(--space-3) 0 var(--space-2); overflow-wrap: anywhere; }
+.lubi-plan-metric-note { font-size: var(--text-code); color: var(--color-muted); line-height: var(--leading-body); overflow-wrap: anywhere; }
+.lubi-root .lubi-planning-head { flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.lubi-planning-head .lubi-today-summary { flex-basis: 100%; border-top: var(--border-width) solid var(--color-border); padding-top: var(--space-2); }
+.lubi-root .lubi-planning-top { gap: var(--space-6); }
+.lubi-root .lubi-planning-main, .lubi-root .lubi-today-main { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.lubi-root .lubi-task-lists { background: transparent; border: none; padding:0; gap: var(--space-4); }
+.lubi-root .lubi-task-lists > .lubi-list-card { border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); background: var(--color-canvas); }
+.lubi-root .lubi-attention-card { border: var(--border-width) solid var(--color-border); background: var(--color-canvas); padding: var(--space-4); border-radius: var(--radius-md); }
+.lubi-root .lubi-attention-card > .lubi-panel-head, .lubi-root .lubi-personal-time > .lubi-panel-head { padding: 0 0 var(--space-2); }
+.lubi-attention-card .lubi-execution-actions { flex-wrap: wrap; gap: var(--space-2); }
+.lubi-attention-card .lubi-execution-actions .lubi-btn { min-height: var(--lubi-compact-control); height: auto; padding: var(--space-2) var(--space-3); font-size: var(--text-ui); white-space: normal; }
+.lubi-attention-card .lubi-review-accept { background: var(--color-ink); color: var(--color-on-accent); border-color: var(--color-ink); }
+.lubi-attention-empty { padding: var(--space-3) 0 0; font-size: var(--text-ui); }
+.lubi-root .lubi-execution-title { height: auto; font-size: var(--text-body); line-height: var(--leading-body); overflow-wrap: anywhere; }
+.lubi-root .lubi-background-card > summary { font-size: var(--text-title); font-weight: var(--weight-strong); }
+.lubi-root .lubi-execution-note { font-size: var(--text-small); line-height: var(--leading-body); }
+.lubi-root .lubi-personal-time { padding: var(--space-4); }
+.lubi-personal-time-list { margin: var(--space-3) 0; }
+.lubi-root button.lubi-personal-time-entry.lubi-btn:not(.clickable-icon) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-2); width: 100%; min-height: var(--control-height); height: auto; border-radius: 0; padding: var(--space-3) 0; text-align: left; border-bottom: var(--border-width) solid var(--color-border); font-size: var(--text-ui); line-height: var(--leading-body); }
+.lubi-personal-time-entry > span:first-child { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+.lubi-personal-time-minutes { font-family: var(--font-mono); color: var(--color-ink); }
+.lubi-personal-time-meta { grid-column: 1 / -1; font-size: var(--text-code); color: var(--color-muted); }
+.lubi-personal-time-more { padding-bottom: var(--space-3); font-size: var(--text-small); }
+.lubi-root .lubi-personal-time-add { width: 100%; height: var(--control-height); }
+.lubi-root .lubi-task-actions { --lubi-task-action-size: var(--lubi-compact-control); opacity: 1; }
+.lubi-root button.lubi-task-start.lubi-btn:not(.clickable-icon) { width: auto; min-width: 64px; height: var(--lubi-compact-control); padding: 0 var(--space-2); color: var(--color-ink); font-size: var(--text-ui); }
+.lubi-root .lubi-task.is-done { opacity: 1; }
+.lubi-root .lubi-task.is-done .lubi-task-title { color: var(--color-muted); }
+.lubi-root .lubi-task-lists .lubi-task { flex-wrap: wrap; }
+.lubi-root .lubi-task-lists .lubi-task-actions { margin-top: var(--space-2); flex-basis: calc(100% - var(--space-6)); margin-left: var(--space-6); margin-right: 0; justify-content: flex-end; }
+.lubi-root .lubi-task-lists .lubi-panel-head { padding-left:0; padding-right:0; }
+.lubi-root .lubi-task-lists .lubi-task-body { min-width: 0; flex-basis: calc(100% - 40px); }
+.lubi-root .lubi-plan-list-card > .lubi-panel-head { padding: var(--space-4); }
+.lubi-root .lubi-plan-list-card .lubi-quick-add { padding: var(--space-3) var(--space-4); }
+.lubi-root .lubi-plan-list-card .lubi-task { --lubi-task-line: calc(var(--text-body) * 1.4); }
+.lubi-root .lubi-plan-list-card .lubi-task-title { font-size: var(--text-body); }
+.lubi-root .lubi-task input[type="checkbox"] { accent-color: var(--color-ink); }
+.lubi-root .lubi-block-title, .lubi-root .lubi-wblock-title { color: var(--color-ink); }
+.lubi-root .lubi-kbd.lubi-kbd-cta { color: var(--color-on-accent); background: transparent; border-color: currentColor; }
+.lubi-modal { box-shadow: var(--shadow-default); }
+.lubi-modal .modal-title { font-size: var(--text-title); color: var(--color-ink); }
+.lubi-modal .lubi-cat-option { border-radius: var(--radius-sm); box-shadow: var(--shadow-default); }
+.lubi-modal .lubi-cat-option[aria-pressed="true"] { color: var(--color-ink); border-color: var(--color-ink); background: var(--color-surface); box-shadow: var(--shadow-default); }
+.lubi-modal .lubi-field :is(input, select, textarea) { border-color: var(--color-control-border); }
+.lubi-modal .lubi-field input[aria-invalid="true"] { outline: var(--border-width) solid var(--color-ink); }
+.lubi-completion-choice { border-top: var(--border-width) solid var(--color-border); padding-top: var(--space-3); margin-top: var(--space-3); }
+.lubi-completion-row { display: flex; align-items: center; gap: var(--space-2); min-height: var(--lubi-compact-control); font-size: var(--text-ui); cursor: pointer; }
+.lubi-modal .lubi-completion-row input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 18px; margin:0; accent-color: var(--color-ink); }
+.lubi-completion-hint { font-size: var(--text-small); padding-left:var(--space-6); }
+.lubi-time-plan-details { margin: var(--space-3) 0; padding: var(--space-2) 0; border-top: var(--border-width) solid var(--color-border); border-bottom: var(--border-width) solid var(--color-border); }
+.lubi-time-plan-details > summary { min-height: var(--lubi-compact-control); font-size: var(--text-ui); color: var(--color-muted); cursor: pointer; }
+.lubi-time-entry .lubi-actual-details { margin-top: var(--space-3); }
+.lubi-time-entry .lubi-modal-actions { margin-top: var(--space-4); }
+.lubi-task-modal .lubi-completion-choice[hidden] { display: none; }
+@container lubi (max-width: 1000px) { .lubi-plan-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container lubi (max-width: 820px) { .lubi-root .lubi-body { padding: var(--space-4); } .lubi-plan-heading { font-size: var(--text-section); } .lubi-plan-intro { margin-bottom: var(--space-4); } .lubi-plan-overview { margin-bottom: var(--space-4); gap: var(--space-2); } .lubi-plan-metric-value { font-size: var(--text-section); } }
+@container lubi (max-width: 540px) { .lubi-root .lubi-task { flex-wrap: wrap; } .lubi-root .lubi-task-actions { margin-top: var(--space-2); flex-basis: calc(100% - var(--space-6)); justify-content: flex-end; margin-left: var(--space-6); margin-right: 0; } .lubi-root .lubi-task-body { flex-basis: calc(100% - 40px); } .lubi-plan-metric { padding: var(--space-3); } }
+@media (pointer: coarse) { .lubi-root .lubi-task-actions { --lubi-task-action-size: var(--control-height); } .lubi-root .lubi-task-start, .lubi-attention-card .lubi-execution-actions .lubi-btn, .lubi-completion-row, .lubi-time-plan-details > summary { min-height: var(--control-height); height: auto; } .lubi-modal .lubi-completion-row input[type="checkbox"] { width: 24px; height: 24px; flex-basis: 24px; } }
+
+@container lubi (max-width: 540px) { .lubi-root .lubi-donut-wrap { flex-wrap: wrap; } .lubi-root .lubi-legend { min-width: calc(var(--space-16) + var(--space-4)); } }
+
+/* Query the plugin pane, not the entire Obsidian window. */
+.lubi-root { container-type: inline-size; container-name: lubi; }
+
+.lubi-time-task-context { padding-bottom: var(--space-3); border-bottom: var(--border-width) solid var(--color-border); }
+.lubi-time-task-title { font-size: var(--text-body); font-weight: var(--weight-strong); overflow-wrap: anywhere; }
+.lubi-time-plan-details > textarea { width: 100%; margin-top: var(--space-2); font-family: var(--font-sans); font-size: var(--text-ui); border: var(--border-width) solid var(--color-control-border); border-radius: var(--radius-sm); background: var(--color-canvas); color: var(--color-ink); }
+
+.lubi-root ::selection, .lubi-modal ::selection, .lubi-settings ::selection { background: var(--color-ink); color: var(--color-on-accent); }
+
+.lubi-modal .modal-title { font-weight: var(--weight-strong); }

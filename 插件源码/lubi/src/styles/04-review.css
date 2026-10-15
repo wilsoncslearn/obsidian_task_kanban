@@ -1,0 +1,56 @@
+
+/* ---------- 回顾 ---------- */
+.lubi-review { display: flex; flex-direction: column; gap: var(--lubi-gap-4); }
+.lubi-toolbar { display: flex; align-items: center; gap: var(--lubi-gap-4); flex-wrap: wrap; }
+.lubi-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--lubi-gap-3); }
+.lubi-kpi { min-width: 0; padding:var(--space-1) 0; }
+.lubi-kpi-label { font-size: var(--font-ui-smaller); color: var(--lubi-muted); }
+.lubi-kpi-value { font-size: var(--text-section); font-weight: var(--weight-strong); font-variant-numeric: tabular-nums; margin-top:var(--space-1); }
+.lubi-kpi-sub { margin-top:var(--space-1); }
+.lubi-chart-card { padding-bottom: var(--lubi-gap-2); }
+.lubi-chart-legend { display: inline-flex; flex-wrap: wrap; gap:var(--space-2); font-size: var(--font-ui-smaller); color: var(--lubi-muted); }
+.lubi-chart-legend-item { display: inline-flex; align-items: center; gap:var(--space-1); }
+.lubi-chart { position: relative; height: 220px; margin-top:var(--space-4); padding-left:var(--space-8); padding-bottom:var(--space-6); box-sizing: border-box; }
+.lubi-chart-grid { position: absolute; left: var(--space-8); right: 0; top: 0; bottom: var(--space-6); pointer-events: none; }
+.lubi-chart-grid::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; border-top: 1px solid var(--lubi-border); }
+.lubi-chart-gridline { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in srgb, var(--lubi-border) 80%, transparent); }
+.lubi-chart-tick { position: absolute; left: -8px; top: -6px; transform: translateX(-100%); font-size: var(--text-code); line-height: 1; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.lubi-chart-avg { position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px dashed color-mix(in srgb, var(--lubi-accent) 70%, transparent); }
+.lubi-chart-avg-label { position: absolute; right: 0; top: -16px; font-size: var(--text-code); line-height: 1; padding:var(--space-1) var(--space-1); border-radius: 3px; background: color-mix(in srgb, var(--lubi-accent) 12%, var(--background-primary)); color: var(--lubi-accent); font-weight: var(--weight-strong); font-variant-numeric: tabular-nums; }
+.lubi-bars { position: relative; display: flex; gap:var(--space-1); align-items: stretch; height: 100%; z-index: 1; }
+.lubi-chart.is-dense .lubi-bars { gap:var(--space-1); }
+/* Obsidian gives buttons a fixed input height; columns must fill the plotted area instead. */
+.lubi-root .lubi-chart .lubi-bar-col {
+  position: relative; flex: 1 1 0; min-width: 0; height: 100%; min-height: 0; align-self: stretch;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  margin:0; padding:0; box-sizing: border-box; appearance: none;
+  border: 0; border-radius: var(--lubi-radius-s); box-shadow: var(--shadow-default);
+  background: transparent; color: var(--text-normal); font-family: inherit; cursor: pointer;
+}
+.lubi-root .lubi-chart .lubi-bar-col:hover { background: color-mix(in srgb, var(--background-modifier-hover) 70%, transparent); }
+.lubi-bar-stack { position: relative; width: 60%; max-width: 40px; min-height: 0; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: visible; }
+.lubi-chart.is-dense .lubi-bar-stack { width: 70%; max-width: 16px; border-radius: 3px 3px 0 0; }
+.lubi-bar-col.is-today:not(.is-empty) .lubi-bar-stack { outline: 1.5px solid var(--lubi-accent); outline-offset: 1px; }
+.lubi-bar-stack.is-over { border-top: 2px dashed var(--color-orange); }
+.lubi-bar-seg { width: 100%; flex: 0 0 auto; min-height: 1px; }
+.lubi-bar-seg:last-child { border-radius: 4px 4px 0 0; }
+.lubi-bar-seg:first-child { border-radius: 0; }
+.lubi-bar-seg:only-child { border-radius: 4px 4px 0 0; }
+.lubi-bar-val { position: absolute; left: 50%; top: -15px; transform: translateX(-50%); font-size: var(--text-code); line-height: 1; color: var(--lubi-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lubi-bar-val.is-over { color: var(--color-orange); font-weight: var(--weight-strong); }
+.lubi-chart.is-dense .lubi-bar-val { display: none; }
+.lubi-chart.is-dense .lubi-bar-col:hover .lubi-bar-val { display: block; }
+.lubi-bar-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); height: 18px; line-height: 18px; padding:0 var(--space-1); border-radius: 9px; font-size: var(--text-code); color: var(--lubi-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lubi-bar-col.is-today .lubi-bar-label { background: var(--lubi-accent); color: var(--text-on-accent); font-weight: var(--weight-strong); }
+.lubi-bar-col.is-future .lubi-bar-label, .lubi-bar-col.is-empty:not(.is-today) .lubi-bar-label { opacity: 0.55; }
+.lubi-tip { position: fixed; z-index: 9999; pointer-events: none; padding:var(--space-1) var(--space-2); border-radius: 6px; background: var(--background-primary); border: 1px solid var(--lubi-border); box-shadow: var(--shadow-default); font-size: var(--font-ui-smaller); color: var(--text-normal); max-width: 260px; }
+.lubi-tip > div:first-child { font-weight: var(--weight-strong); margin-bottom:var(--space-1); }
+.lubi-tip-row { display: flex; align-items: center; gap:var(--space-1); font-variant-numeric: tabular-nums; color: var(--lubi-muted); }
+.lubi-review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--lubi-gap-4); align-items: start; }
+.lubi-row-bar { margin-bottom:var(--space-2); }
+.lubi-row-bar-head { display: flex; align-items: center; gap:var(--space-2); font-size: var(--font-ui-small); margin-bottom:var(--space-1); }
+.lubi-row-bar-head .lubi-legend-name { flex: 0 0 auto; min-width: 64px; }
+.lubi-row-bar-head .lubi-legend-val { margin-left:auto; }
+.lubi-track { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--lubi-border) 60%, transparent); overflow: hidden; }
+.lubi-fill { height: 100%; background: var(--lubi-accent); border-radius: 3px; }
+.lubi-spend-list { margin-top: var(--lubi-gap-3); padding-top: var(--lubi-gap-2); border-top: 1px solid var(--lubi-border); display: flex; flex-direction: column; gap:var(--space-1); max-height: 260px; overflow: auto; }

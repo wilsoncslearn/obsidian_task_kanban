@@ -1,0 +1,239 @@
+
+
+/* ---------- 2026-09 审核通过的面板内适配 / 可达性 / 数据提示 ---------- */
+.lubi-root { container-type: inline-size; }
+.lubi-page, .lubi-today, .lubi-today-side, .lubi-tasks-top, .lubi-tasks-week, .lubi-review-grid, .lubi-card { min-width: 0; }
+.lubi-sr-only { position: absolute; width: 1px; height: 1px; padding:0; margin:calc(-1 * var(--space-1)); overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.lubi-root :is(button, input, select, textarea, [tabindex]):focus-visible,
+.lubi-modal :is(button, input, select, textarea, [tabindex]):focus-visible,
+.lubi-notice button:focus-visible {
+  outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); box-shadow: var(--shadow-default);
+}
+.lubi-root .lubi-timeline:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); }
+.lubi-root [hidden] { display: none !important; }
+.lubi-data-warning, .lubi-modal-error {
+  border: 1px solid color-mix(in srgb, var(--color-orange) 55%, var(--lubi-border));
+  border-radius: var(--lubi-radius); padding: var(--lubi-gap-3); line-height: 1.5;
+  background: color-mix(in srgb, var(--color-orange) 8%, var(--lubi-card-bg)); color: var(--text-normal);
+}
+.lubi-data-warning-links { display: flex; flex-wrap: wrap; gap: var(--lubi-gap-2); margin-top: var(--lubi-gap-2); }
+.lubi-data-overlap, .lubi-insight { padding: var(--lubi-gap-2) var(--lubi-gap-3); border-left: 3px solid var(--lubi-accent); background: var(--lubi-card-bg); color: var(--text-muted); font-size: var(--font-ui-small); }
+.lubi-block.is-invalid { box-shadow: var(--shadow-default); cursor: pointer; }
+.lubi-block:focus-within:not(.is-dragging) .lubi-block-actions { display: inline-flex; }
+.lubi-block:focus-within:not(.is-dragging) .lubi-block-time, .lubi-block:focus-within:not(.is-dragging) .lubi-block-dur { visibility: hidden; }
+.lubi-pin { border: 0; box-shadow: var(--shadow-default); color: var(--text-normal); text-align: left; font-family: inherit; }
+.lubi-task-title-button, .lubi-week-day-button, .lubi-agenda-day-title {
+  border: 0; box-shadow: var(--shadow-default); background: transparent; color: var(--text-normal); font-family: inherit; cursor: pointer; text-align: left;
+}
+.lubi-task-title-button { display: flex; width: 100%; min-width: 0; padding:0; font-weight: var(--weight-strong); }
+.lubi-task-title-button:hover, .lubi-agenda-day-title:hover { color: var(--lubi-accent); }
+.lubi-task:focus-within .lubi-task-actions { display: inline-flex; }
+.lubi-task-group + .lubi-task-group { margin-top: var(--lubi-gap-3); }
+.lubi-task-group { min-width: 0; }
+.lubi-task-group-title { display: block; max-width: 100%; white-space: normal; overflow-wrap: anywhere; line-height: 1.45; font-size: var(--font-ui-small); font-weight: var(--weight-strong); color: var(--text-muted); padding:var(--space-1) var(--space-1); }
+.lubi-btn.lubi-task-group-title { height: auto; min-height: 28px; border: 0; box-shadow: var(--shadow-default); background: transparent; justify-content: flex-start; text-align: left; }
+.lubi-quick-add .lubi-btn { flex-shrink: 0; }
+.lubi-quick-add input { min-width: 0; }
+.lubi-chart-card { min-width: 0; }
+.lubi-week-day { cursor: default; }
+.lubi-week-day-button { width: 100%; min-height: 40px; padding:0; border-radius: var(--lubi-radius-s); text-align: center; }
+.lubi-week-day-button:hover { background: var(--background-modifier-hover); }
+.lubi-allday-chip { display: block; width: 100%; height: auto; min-height: 26px; box-sizing: border-box; box-shadow: var(--shadow-default); color: var(--text-normal); font-family: inherit; }
+.lubi-wblock:focus-visible { z-index: 7; }
+.lubi-agenda-host, .lubi-agenda-card { display: none; }
+.lubi-agenda-head { flex-wrap: wrap; }
+.lubi-agenda-range { margin-bottom: var(--lubi-gap-3); }
+.lubi-agenda-day { border-top: 1px solid var(--lubi-border); padding: var(--lubi-gap-2) 0; }
+.lubi-agenda-day-title { display: block; width: 100%; padding: var(--lubi-gap-2); border-radius: var(--lubi-radius-s); font-size: var(--font-ui-small); font-weight: var(--weight-strong); }
+.lubi-agenda-day-title.is-selected { background: color-mix(in srgb, var(--lubi-accent) 10%, transparent); }
+.lubi-agenda-add { margin-top: var(--lubi-gap-2); }
+.lubi-chart-card .lubi-panel-head { flex-wrap: wrap; }
+.lubi-chart-legend { max-width: 100%; }
+.lubi-bar-col:focus-visible .lubi-bar-val, .lubi-chart.is-dense .lubi-bar-col:focus-visible .lubi-bar-val { display: block; }
+.lubi-bar-val.is-parallel { color: var(--lubi-accent); font-weight: var(--weight-strong); }
+.lubi-review-table-wrap { overflow-x: auto; max-width: 100%; margin-top: var(--lubi-gap-3); }
+.lubi-review-table { border-collapse: collapse; width: 100%; white-space: nowrap; font-size: var(--font-ui-small); }
+.lubi-review-table caption { text-align: left; color: var(--text-muted); padding: var(--lubi-gap-2) 0; }
+.lubi-review-table :is(th, td) { padding: var(--lubi-gap-2) var(--lubi-gap-3); text-align: right; border-bottom: 1px solid var(--lubi-border); font-variant-numeric: tabular-nums; }
+.lubi-review-table :is(th, td):first-child { text-align: left; }
+.lubi-review-table thead th { color: var(--text-muted); font-weight: var(--weight-strong); }
+.lubi-table-link { border: 0; background: transparent; box-shadow: var(--shadow-default); padding:var(--space-1); color: var(--text-accent); cursor: pointer; }
+.lubi-table-link:hover { text-decoration: underline; }
+.lubi-review-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.lubi-kpis { grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); }
+.lubi-field-error { font-size: var(--font-ui-small); color: var(--text-error); line-height: 1.4; }
+.lubi-modal [aria-invalid="true"] { border-color: var(--text-error) !important; }
+.lubi-modal-error { border-color: var(--text-error); background: color-mix(in srgb, var(--text-error) 7%, var(--background-primary)); }
+.lubi-timebar { flex-wrap: wrap; }
+.lubi-timebar > .lubi-field-error { flex: 0 0 100%; padding-top: var(--lubi-gap-1); }
+.lubi-modal { container-type: inline-size; }
+
+/* 三页共用按钮：确保 Obsidian 主题的 button 默认高度/底色/阴影不能覆盖插件状态。
+   仅作用于 Lubi 面板和弹窗；原生输入与第三方插件不受影响。 */
+:is(.lubi-root, .lubi-modal) button:is(.lubi-btn, .lubi-icon-btn, .lubi-seg-item, .lubi-cat-option, .lubi-quick-chip, .lubi-ghost-btn, .lubi-text-btn, .lubi-timebar-unit, .lubi-task-title-button, .lubi-week-day-button, .lubi-allday-chip, .lubi-agenda-day-title, .lubi-table-link, .lubi-pin, .lubi-date-label):not(.clickable-icon) {
+  appearance: none; box-sizing: border-box; max-width: 100%; min-height: 0;
+  border: 0; box-shadow: var(--shadow-default); background: transparent; color: var(--text-normal); font-family: inherit;
+}
+:is(.lubi-root, .lubi-modal) button.lubi-btn:not(.clickable-icon) {
+  height: 32px; padding:0 var(--space-3); border: 1px solid var(--lubi-border);
+  background: var(--background-primary); color: var(--text-normal);
+}
+:is(.lubi-root, .lubi-modal) button.lubi-btn-sm:not(.clickable-icon) { height: 28px; padding:0 var(--space-2); }
+:is(.lubi-root, .lubi-modal) button.lubi-btn.mod-cta:not(.clickable-icon) {
+  background: var(--lubi-accent); border-color: var(--lubi-accent); color: var(--text-on-accent);
+}
+:is(.lubi-root, .lubi-modal) button.lubi-btn-ghost:not(.clickable-icon) { background: transparent; border-color: transparent; color: var(--lubi-muted); }
+:is(.lubi-root, .lubi-modal) button.lubi-btn-danger:not(.clickable-icon) { background: var(--text-error); border-color: var(--text-error); color: white; }
+:is(.lubi-root, .lubi-modal) button.lubi-btn:not(.mod-cta):not(.lubi-btn-danger):hover { background: var(--background-modifier-hover); border-color: var(--lubi-accent); }
+:is(.lubi-root, .lubi-modal) button.lubi-btn-ghost:hover { border-color: transparent; color: var(--text-normal); }
+:is(.lubi-root, .lubi-modal) button.lubi-btn:is(.mod-cta, .lubi-btn-danger):hover { filter: brightness(1.08); }
+.lubi-modal .lubi-modal-actions button.lubi-btn:not(.clickable-icon) { height: 36px; padding:0 var(--space-4); }
+:is(.lubi-root, .lubi-modal) button.lubi-icon-btn:not(.clickable-icon) { width: 30px; height: 30px; padding:0; color: var(--lubi-muted); }
+:is(.lubi-root, .lubi-modal) button.lubi-icon-btn-sm:not(.clickable-icon) { width: 24px; height: 24px; }
+:is(.lubi-root, .lubi-modal) button.lubi-icon-btn:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+:is(.lubi-root, .lubi-modal) button.lubi-seg-item:not(.clickable-icon) {
+  height: 30px; padding:0 var(--space-3); border: 1px solid transparent; color: var(--lubi-muted);
+  justify-content: center; font-weight: var(--weight-strong); line-height: 1; white-space: nowrap;
+}
+:is(.lubi-root, .lubi-modal) button.lubi-seg-item:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+:is(.lubi-root, .lubi-modal) button.lubi-seg-item[aria-pressed="true"]:not(.clickable-icon) {
+  border-color: var(--lubi-border); background: var(--background-primary);
+  box-shadow: var(--shadow-default); color: var(--text-normal); font-weight: var(--weight-strong);
+}
+.lubi-modal .lubi-status-seg button.lubi-seg-item[data-task-status="todo"] { --lubi-state: var(--lubi-accent); }
+.lubi-modal .lubi-status-seg button.lubi-seg-item[data-task-status="doing"] { --lubi-state: var(--color-blue); }
+.lubi-modal .lubi-status-seg button.lubi-seg-item[data-task-status="done"] { --lubi-state: var(--color-green); }
+.lubi-modal .lubi-status-seg button.lubi-seg-item[aria-pressed="true"]:not(.clickable-icon) {
+  background: color-mix(in srgb, var(--lubi-state) 21%, var(--background-primary));
+  border-color: var(--lubi-state); box-shadow: var(--shadow-default);
+}
+.lubi-status-check { display: inline-flex; align-items: center; justify-content: center; width: 14px; visibility: hidden; font-weight: var(--weight-strong); }
+.lubi-status-seg .lubi-seg-item[aria-pressed="true"] .lubi-status-check { visibility: visible; }
+.lubi-status-hint { font-size: var(--font-ui-smaller); line-height: 1.45; color: var(--lubi-muted); }
+.lubi-modal button.lubi-cat-option:not(.clickable-icon) { height: 36px; padding:0 var(--space-1); border: 1px solid var(--lubi-border); color: var(--lubi-muted); }
+.lubi-modal button.lubi-cat-option:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.lubi-modal button.lubi-cat-option[aria-pressed="true"]:not(.clickable-icon) {
+  background: color-mix(in srgb, var(--chip) 14%, var(--background-primary));
+  border-color: color-mix(in srgb, var(--chip) 70%, var(--lubi-border)); color: var(--text-normal);
+}
+.lubi-modal button.lubi-quick-chip:not(.clickable-icon) { height: 28px; padding:0 var(--space-3); border: 1px solid var(--lubi-border); color: var(--lubi-muted); }
+.lubi-modal button.lubi-quick-chip:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.lubi-modal button.lubi-quick-chip[aria-pressed="true"]:not(.clickable-icon) {
+  background: var(--lubi-accent); border-color: var(--lubi-accent); color: var(--text-on-accent);
+}
+.lubi-modal button.lubi-quick-chip-warn[aria-pressed="true"]:not(.clickable-icon) { background: var(--color-orange); border-color: var(--color-orange); color: white; }
+.lubi-modal button.lubi-ghost-btn:not(.clickable-icon), .lubi-modal button.lubi-text-btn:not(.clickable-icon) {
+  height: 30px; padding:0 var(--space-2); color: var(--lubi-muted);
+}
+.lubi-modal button.lubi-text-btn:not(.clickable-icon) { height: 36px; }
+.lubi-modal button.lubi-ghost-btn:hover, .lubi-modal button.lubi-text-btn:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.lubi-modal button.lubi-text-btn-danger:not(.clickable-icon) { color: var(--text-error); }
+.lubi-modal button.lubi-text-btn-danger:hover { background: color-mix(in srgb, var(--text-error) 10%, transparent); }
+.lubi-modal button.lubi-timebar-unit:not(.clickable-icon) { height: 24px; padding:0 var(--space-2); background: var(--background-secondary); color: var(--lubi-muted); }
+.lubi-modal button.lubi-timebar-unit:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.lubi-root button.lubi-task-title-button:not(.clickable-icon) { width: 100%; height: auto; padding:0; text-align: left; white-space: normal; }
+.lubi-root button.lubi-task-title-button:hover { color: var(--lubi-accent); }
+.lubi-root button.lubi-date-label:not(.clickable-icon) { height: 30px; padding:0 var(--space-2); }
+.lubi-root button.lubi-date-label:hover { background: var(--background-modifier-hover); }
+.lubi-root button.lubi-date-label.is-today { color: var(--lubi-accent); }
+.lubi-root button.lubi-btn.lubi-task-group-title:not(.clickable-icon) {
+  display: flex; width: 100%; height: auto; min-height: 28px; padding:var(--space-1) var(--space-1);
+  border: 0; background: transparent; color: var(--text-muted);
+  text-align: left; justify-content: flex-start; white-space: normal; overflow-wrap: anywhere;
+}
+.lubi-root button.lubi-btn.lubi-task-group-title:hover { background: var(--background-modifier-hover); color: var(--lubi-accent); }
+.lubi-root button.lubi-week-day-button:not(.clickable-icon) { width: 100%; height: auto; min-height: 40px; padding:0; text-align: center; }
+.lubi-root button.lubi-week-day-button:hover { background: var(--background-modifier-hover); }
+
+.lubi-root button.lubi-allday-chip:not(.clickable-icon) {
+  display: block; width: 100%; height: auto; min-height: 26px; padding:var(--space-1) var(--space-1);
+  border-left: 2px solid var(--chip); background: color-mix(in srgb, var(--chip) 18%, var(--background-primary));
+  text-align: left; white-space: normal; overflow-wrap: anywhere; line-height: 1.35;
+}
+.lubi-root button.lubi-allday-chip:hover { background: color-mix(in srgb, var(--chip) 30%, var(--background-primary)); }
+.lubi-root button.lubi-agenda-day-title:not(.clickable-icon) { width: 100%; height: auto; padding: var(--lubi-gap-2); text-align: left; }
+.lubi-root button.lubi-agenda-day-title.is-selected { background: color-mix(in srgb, var(--lubi-accent) 12%, transparent); box-shadow: var(--shadow-default); }
+.lubi-root button.lubi-table-link:not(.clickable-icon) { height: auto; padding:var(--space-1); color: var(--text-accent); }
+.lubi-root button.lubi-table-link:hover { text-decoration: underline; }
+.lubi-root button.lubi-pin:not(.clickable-icon) {
+  height: auto; min-height: 24px; padding:var(--space-1) var(--space-2);
+  background: color-mix(in srgb, var(--chip) 18%, var(--background-primary));
+}
+.lubi-notice button.lubi-notice-btn:not(.clickable-icon) {
+  height: 26px; min-height: 0; padding:0 var(--space-3); box-sizing: border-box; box-shadow: var(--shadow-default);
+  border: 1px solid var(--lubi-accent); background: color-mix(in srgb, var(--lubi-accent) 12%, var(--background-primary));
+  color: var(--lubi-accent);
+}
+.lubi-notice button.lubi-notice-btn:hover { background: color-mix(in srgb, var(--lubi-accent) 22%, var(--background-primary)); }
+
+/* 按 Obsidian 标签页面板宽度而非整个桌面窗口选择布局。 */
+@container (max-width: 1100px) {
+  .lubi-tasks-top { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 900px) {
+  .lubi-today { grid-template-columns: minmax(0, 1fr); }
+  .lubi-today-side { position: static; }
+}
+@container (max-width: 820px) {
+  .lubi-tasks-week, .lubi-week-card { display: none; }
+  .lubi-agenda-host, .lubi-agenda-card { display: block; }
+}
+@container (max-width: 560px) {
+  .lubi-topbar { display: flex; flex-direction: column; align-items: stretch; gap: var(--lubi-gap-2); }
+  .lubi-day-nav { display: flex; width: 100%; justify-content: space-between; }
+  .lubi-date-label { min-width: 0; flex: 1; padding:0 var(--space-1); }
+  .lubi-topbar-tabs { display: flex; justify-content: space-around; }
+  .lubi-topbar-tabs .lubi-seg-item { flex: 1; justify-content: center; }
+  .lubi-topbar-right { margin-left:0; justify-content: flex-end; }
+  .lubi-page { padding: var(--lubi-gap-2); }
+  .lubi-tl-gutter { width: 42px; }
+  .lubi-timeline { --lubi-gutter: 42px; }
+  .lubi-timeline.has-rail { --lubi-rail: 90px; }
+  .lubi-tl-canvas { padding:0 var(--space-1); }
+  .lubi-legend-row { flex-wrap: wrap; }
+  .lubi-toolbar .lubi-nav { width: 100%; justify-content: space-between; }
+  .lubi-chart.is-dense { overflow-x: auto; }
+  .lubi-chart.is-dense .lubi-bars { min-width: 540px; }
+  .lubi-chart-legend { order: 3; flex-basis: 100%; }
+}
+@container (max-width: 380px) {
+  .lubi-topbar-tabs .lubi-seg-item { padding:0 var(--space-1); }
+  .lubi-tl-canvas .lubi-block-time { display: none; }
+  .lubi-timeline.has-rail { --lubi-rail: 76px; }
+  .lubi-agenda-head .lubi-nav { flex-basis: 100%; justify-content: space-between; }
+}
+@container (max-width: 460px) {
+  .lubi-cat-picker, .lubi-task-modal .lubi-cat-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lubi-modal .lubi-timebar-cell input { width: 100px; }
+  .lubi-modal .lubi-timebar-seg { min-width: 6px; }
+  .lubi-modal .lubi-field-row { flex-wrap: wrap; }
+  .lubi-modal .lubi-field-narrow { flex-basis: 100%; }
+}
+/* 若旧版 Obsidian 不支持容器查询，仍保持窗口窄时的单列/议程。 */
+@supports not (container-type: inline-size) {
+  @media (max-width: 1100px) { .lubi-tasks-top { grid-template-columns: 1fr; } }
+  @media (max-width: 820px) { .lubi-week-card { display: none; } .lubi-agenda-card { display: block; } }
+}
+@media (pointer: coarse) {
+  .lubi-root .lubi-icon-btn, .lubi-modal .lubi-icon-btn, .lubi-root .lubi-btn, .lubi-modal .lubi-btn,
+  .lubi-root .lubi-seg-item, .lubi-modal .lubi-seg-item, .lubi-modal .lubi-quick-chip,
+  .lubi-modal .lubi-cat-option, .lubi-root .lubi-agenda-day-title { min-height: 44px; }
+  .lubi-root .lubi-icon-btn, .lubi-modal .lubi-icon-btn { min-width: 44px; }
+  .lubi-task { flex-wrap: wrap; }
+  .lubi-task-actions { display: inline-flex; position: static; margin-left:auto; }
+  .lubi-task-actions .lubi-icon-btn { min-width: 44px; }
+  .lubi-block:focus-within .lubi-block-actions { display: inline-flex; }
+  .lubi-notice-btn { min-height: 44px; }
+}
+@media (pointer: coarse) {
+  :is(.lubi-root, .lubi-modal) button:is(.lubi-btn, .lubi-icon-btn, .lubi-seg-item, .lubi-cat-option, .lubi-quick-chip, .lubi-ghost-btn, .lubi-text-btn, .lubi-task-title-button, .lubi-week-day-button, .lubi-allday-chip, .lubi-agenda-day-title, .lubi-date-label):not(.clickable-icon) { min-height: 44px; }
+  :is(.lubi-root, .lubi-modal) button.lubi-icon-btn:not(.clickable-icon) { min-width: 44px; }
+  .lubi-root button.lubi-btn.lubi-task-group-title:not(.clickable-icon), .lubi-notice button.lubi-notice-btn:not(.clickable-icon) { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lubi-root *, .lubi-modal *, .lubi-notice * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* 可视高度取本插件面板尺寸，不取整个桌面窗口 vh。 */
+.lubi-timeline-scroll { height: clamp(320px, calc(var(--lubi-panel-height, 840px) - 190px), 720px); min-height: 0; }
+.lubi-week-body { max-height: clamp(320px, calc(var(--lubi-panel-height, 840px) - 260px), 620px); min-height: 0; }

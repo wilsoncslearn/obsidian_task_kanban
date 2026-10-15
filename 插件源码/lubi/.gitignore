@@ -6,3 +6,4 @@ test/.out/
 test/*.log
 .codegraph/
 __pycache__/
+/styles.css

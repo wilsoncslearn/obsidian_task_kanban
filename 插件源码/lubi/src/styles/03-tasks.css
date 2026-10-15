@@ -1,0 +1,122 @@
+
+
+/* ---------- 任务列表 ---------- */
+.lubi-task-list { display: flex; flex-direction: column; }
+.lubi-task {
+  --lubi-task-pad-x: 6px; --lubi-task-line: calc(var(--font-ui-small) * 1.4);
+  display: flex; align-items: flex-start; gap:var(--space-2); padding: 8px var(--lubi-task-pad-x); border-radius: var(--lubi-radius-s);
+  border-bottom: 1px solid var(--lubi-border); cursor: pointer; position: relative;
+}
+.lubi-task:last-child { border-bottom: none; }
+.lubi-task:hover { background: var(--background-modifier-hover); }
+/* 去掉原生左右外边距，复选框左缘与分组标题文字对齐 */
+.lubi-task input[type="checkbox"] { margin:var(--space-1) 0 0; flex-shrink: 0; }
+.lubi-task-body { flex: 1; min-width: 0; }
+.lubi-task-title { display: flex; align-items: flex-start; gap:var(--space-1); font-size: var(--font-ui-small); min-width: 0; }
+.lubi-task-title-text { min-width: 0; flex: 1; overflow-wrap: anywhere; line-height: 1.4; }
+/* 圆点 / 受阻图标与标题首行垂直居中：首行行高 1.4em，偏移 (1.4em − 自身高度) / 2；标题换行时仍对齐第一行 */
+.lubi-task-title > .lubi-dot { margin-top: calc(0.7em - 4px); }
+.lubi-task-title > .lubi-blocked-icon { margin-top: calc(0.7em - 6.5px); }
+.lubi-task-meta { font-size: var(--font-ui-smaller); color: var(--lubi-muted); margin-top:var(--space-1); white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+.lubi-task.is-done .lubi-task-title { text-decoration: line-through; color: var(--lubi-muted); }
+/* 已完成但没记时间：小药丸按钮，点一下补记 */
+.lubi-root button.lubi-task-unlogged, .lubi-task-unlogged {
+  display: inline-flex; align-items: center; gap:var(--space-1); height: auto; margin-top:var(--space-1); padding:var(--space-1) var(--space-2);
+  border: 1px dashed var(--color-orange); border-radius: 999px; background: transparent; box-shadow: var(--shadow-default);
+  color: var(--color-orange); font-size: var(--font-ui-smaller); line-height: 1.4; cursor: pointer;
+}
+.lubi-root button.lubi-task-unlogged:hover, .lubi-root button.lubi-task-unlogged:focus-visible { background: rgba(var(--color-orange-rgb), 0.12); }
+.lubi-task-unlogged .lubi-icon { width: 12px; height: 12px; }
+.lubi-task-unlogged .lubi-icon svg { width: 12px; height: 12px; }
+.lubi-task.is-blocked .lubi-blocked-icon svg { width: 13px; height: 13px; color: var(--color-orange); }
+.lubi-task-actions { display: inline-flex; position: static; margin-left:auto; flex-shrink: 0; align-self: flex-start; }
+.lubi-task:hover .lubi-task-actions { display: inline-flex; }
+.lubi-task-list-compact .lubi-task { --lubi-task-pad-x: 4px; padding: 5px var(--lubi-task-pad-x); }
+.lubi-task.is-draggable { cursor: grab; }
+.lubi-task.is-dragging { opacity: 0.4; }
+.lubi-quick-add { display: flex; align-items: center; gap:var(--space-2); margin-top: var(--lubi-gap-2); color: var(--lubi-muted); }
+.lubi-quick-add input { flex: 1; border: none; background: transparent; box-shadow: var(--shadow-default); padding:var(--space-2) var(--space-1); font-size: var(--font-ui-small); border-radius: 0; }
+:is(.lubi-root, .lubi-modal) .lubi-quick-add input:focus { box-shadow: inset 0 calc(var(--border-width) - var(--focus-width)) 0 var(--focus-color); outline: none; border-bottom: var(--border-width) solid var(--focus-color); }
+.lubi-ai-task-intro { display: flex; align-items: center; gap:var(--space-2); margin-bottom:var(--space-2); color: var(--text-muted); }
+.lubi-ai-task-modal textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 88px; }
+.lubi-ai-task-result { margin-top:var(--space-3); padding-top:var(--space-3); border-top: 1px solid var(--lubi-line); }
+.lubi-ai-task-result-head { display: flex; justify-content: space-between; align-items: center; font-weight: var(--weight-strong); margin-bottom:var(--space-2); }
+.lubi-ai-task-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:var(--space-1) var(--space-3); }
+.lubi-ai-task-row { display: flex; gap:var(--space-2); min-width: 0; }
+.lubi-ai-task-row > :last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lubi-ai-task-explanation { margin-top:var(--space-2); color: var(--text-muted); font-size: var(--lubi-fs-sm); }
+.lubi-ai-task-error { color: var(--text-error); padding:var(--space-2) 0; }
+@container (max-width: 560px) { .lubi-ai-task-grid { grid-template-columns: 1fr; } }
+
+/* ---------- 任务页布局 ---------- */
+.lubi-tasks { display: flex; flex-direction: column; gap: var(--lubi-gap-4); }
+.lubi-tasks-top { display: grid; grid-template-columns: clamp(300px, 24cqi, 360px) minmax(0, 1fr); gap: var(--lubi-gap-4); align-items: start; }
+@media (max-width: 900px) { .lubi-tasks-top { grid-template-columns: 1fr; } }
+.lubi-tasks-left { display: flex; flex-direction: column; gap: var(--lubi-gap-3); min-width: 0; }
+.lubi-week-card { padding-bottom:0; }
+.lubi-week { display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--lubi-border); }
+.lubi-week-corner { border-right: 1px solid var(--lubi-border); }
+.lubi-week-day { padding:var(--space-1) var(--space-1) var(--space-1); border-right: 1px solid var(--lubi-border); text-align: center; cursor: pointer; min-height: 52px; min-width: 0; }
+.lubi-week-day:last-child { border-right: none; }
+.lubi-week-day.is-today .lubi-week-dow { color: var(--lubi-accent); }
+.lubi-week-day.is-selected { background: color-mix(in srgb, var(--lubi-accent) 8%, transparent); }
+.lubi-week-day.is-drop, .lubi-week-col.is-drop { background: color-mix(in srgb, var(--lubi-accent) 12%, transparent); }
+.lubi-week-dow { display: block; font-size: var(--font-ui-smaller); color: var(--lubi-muted); }
+.lubi-week-date { display: block; justify-self: end; font-size: var(--text-code); line-height: 1.4; color: var(--lubi-muted); font-weight: var(--weight-regular); }
+.lubi-allday { display: flex; flex-direction: column; gap:var(--space-1); margin-top:var(--space-1); min-width: 0; }
+.lubi-allday-chip { font-size: var(--text-code); padding:var(--space-1) var(--space-1); border-radius: 4px; background: color-mix(in srgb, var(--chip) 18%, var(--background-primary)); border-left: 2px solid var(--chip); text-align: left; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; cursor: grab; }
+.lubi-allday-chip.is-done { text-decoration: line-through; opacity: 0.6; }
+.lubi-week-body { grid-column: 1 / -1; display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); max-height: calc(100vh - 320px); min-height: 360px; overflow-y: auto; border-top: 1px solid var(--lubi-border); }
+.lubi-week-hours { position: relative; border-right: 1px solid var(--lubi-border); }
+.lubi-week-hour { position: absolute; right: 6px; transform: translateY(-50%); font-size: var(--text-code); color: var(--lubi-muted); font-variant-numeric: tabular-nums; }
+.lubi-week-hour.is-day-end { transform: translateY(-100%); }
+.lubi-week-col { position: relative; border-right: 1px solid var(--lubi-border); cursor: crosshair; }
+.lubi-week-col:last-child { border-right: none; }
+/* 周日程空白处拖出新任务时的虚线预览 */
+.lubi-wghost {
+  display: none; position: absolute; left: 2px; right: 2px; z-index: 4; box-sizing: border-box; overflow: hidden; pointer-events: none;
+  padding:var(--space-1) var(--space-1); border-radius: 4px; border: 1.5px dashed var(--lubi-accent);
+  background: color-mix(in srgb, var(--lubi-accent) 14%, transparent);
+  font-size: var(--text-code); font-weight: var(--weight-strong); line-height: 1.3; color: var(--lubi-accent); font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis;
+}
+.lubi-wghost.is-on { display: block; }
+/* 周日程悬停指示：列内虚线（复用 .lubi-tl-hover）+ 刻度栏时间标签 */
+.lubi-week-hover { z-index: 1; transform: translateY(-0.5px); }
+.lubi-week-hover.is-on:not(.is-current) { opacity: 0.45; }
+.lubi-week-hover.is-current { border-top-color: var(--text-muted); }
+/* 十字的竖向部分：当前列两侧虚线 + 淡底色；表头同列同步高亮 */
+.lubi-week-col.is-hover { background-color: color-mix(in srgb, var(--text-normal) 4%, transparent); }
+.lubi-week-col.is-hover::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  border-left: 1px dashed var(--text-faint); border-right: 1px dashed var(--text-faint);
+}
+.lubi-week-day.is-hover { background-color: color-mix(in srgb, var(--text-normal) 5%, transparent); }
+.lubi-week-day.is-hover .lubi-week-dow { color: var(--text-normal); font-weight: var(--weight-strong); }
+.lubi-week-hover-label {
+  position: absolute; right: 4px; transform: translateY(-50%); z-index: 2; pointer-events: none;
+  opacity: 0; transition: opacity 0.1s;
+  font-size: var(--lubi-fs-xs, 11px); line-height: 1; padding:var(--space-1) var(--space-1); border-radius: 3px; white-space: nowrap;
+  background: var(--text-normal); color: var(--background-primary); font-variant-numeric: tabular-nums; font-weight: var(--weight-strong);
+}
+.lubi-week-hover-label.is-on { opacity: 1; }
+.lubi-week-col.is-today { background: color-mix(in srgb, var(--lubi-accent) 4%, transparent); }
+.lubi-week-line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--lubi-border); opacity: 0.7; pointer-events: none; }
+.lubi-week-line.is-half { border-top-style: dashed; opacity: 0.35; }
+.lubi-week-col .lubi-now { left: 0; }
+.lubi-week-col .lubi-now::before { display: none; }
+.lubi-wblock {
+  position: absolute; left: 2px; right: 2px; box-sizing: border-box; overflow: hidden; cursor: grab; z-index: 2;
+  padding:var(--space-1) var(--space-1) var(--space-1) var(--space-2); border-radius: 4px;
+  background: color-mix(in srgb, var(--chip) 14%, var(--background-primary));
+  user-select: none; -webkit-user-select: none; touch-action: none;
+}
+.lubi-wblock::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--chip); }
+.lubi-wblock:hover { background: color-mix(in srgb, var(--chip) 24%, var(--background-primary)); z-index: 3; }
+.lubi-wblock.is-dragging { z-index: 6; box-shadow: var(--shadow-default); opacity: 0.95; }
+.lubi-wblock .lubi-block-handle { height: 7px; }
+.lubi-wblock.is-resizing { cursor: ns-resize; }
+.lubi-wblock:hover .lubi-block-handle::after { opacity: 0.6; }
+.lubi-wblock.is-done { opacity: 0.55; text-decoration: line-through; }
+.lubi-wblock.is-blocked { box-shadow: var(--shadow-default); }
+.lubi-wblock-title { font-size: var(--text-code); font-weight: var(--weight-strong); line-height: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lubi-wblock-time { font-size: var(--text-code); line-height: 12px; color: var(--lubi-muted); white-space: nowrap; }

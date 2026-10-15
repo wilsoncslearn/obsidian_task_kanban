@@ -1,0 +1,227 @@
+
+/* =====================================================================
+   v1.5：计划层 · 待确认记录 · 每日页右栏（今日计划 / 空白时段）
+   ===================================================================== */
+/* 记录区与计划列分栏：没有计划时记录占满，有计划时右侧留出虚线列 */
+.lubi-root .lubi-tl-canvas { --lubi-plan-w: 0px; --lubi-rec-w: calc(100% - var(--lubi-plan-w)); }
+.lubi-root .lubi-tl-canvas.has-plans { --lubi-plan-w: 30%; }
+.lubi-root .lubi-tl-canvas.has-plans .lubi-gap { right: calc(var(--lubi-plan-w) + 8px); }
+.lubi-plan-lane { position: absolute; top: calc(-1 * var(--lubi-day-start-gutter, 24px)); bottom: 0; right: 0; width: var(--lubi-plan-w); border-left: 1px dashed var(--lubi-line); box-sizing: border-box; pointer-events: none; }
+.lubi-plan-lane-title {
+  position: sticky; top: 0; z-index: 3; padding:var(--space-1) var(--space-2); font-size: var(--lubi-fs-xs); font-weight: var(--weight-strong); letter-spacing: 0.04em;
+  color: var(--lubi-muted); background: color-mix(in srgb, var(--lubi-card-bg) 88%, transparent);
+}
+.lubi-root .lubi-plan {
+  position: absolute; left: 6px; right: 4px; width: auto; height: auto; min-height: 0; z-index: 2; pointer-events: auto;
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap:0;
+  padding:var(--space-1) var(--space-2); box-sizing: border-box; overflow: hidden; text-align: left; cursor: grab; touch-action: none; user-select: none;
+  border: 1.5px dashed color-mix(in srgb, var(--chip) 65%, transparent); border-radius: 6px; box-shadow: var(--shadow-default);
+  background: color-mix(in srgb, var(--chip) 6%, transparent); color: var(--text-normal);
+  transition: background var(--lubi-dur) var(--lubi-ease), border-color var(--lubi-dur) var(--lubi-ease);
+}
+.lubi-root .lubi-plan:hover, .lubi-root .lubi-plan:focus-visible {
+  background: color-mix(in srgb, var(--chip) 16%, var(--background-primary)); border-style: solid; z-index: 4;
+}
+.lubi-root .lubi-plan.is-late { border-color: color-mix(in srgb, var(--lubi-warn) 70%, transparent); }
+.lubi-root .lubi-plan.is-dragging { z-index: 5; transition: none; border-style: solid; }
+.lubi-plan .lubi-block-handle { left: 4px; right: 4px; height: 6px; pointer-events: auto; }
+.lubi-plan:hover .lubi-block-handle::after, .lubi-plan:focus-visible .lubi-block-handle::after { opacity: 0.6; }
+body.lubi-dragging .lubi-plan.is-resizing, body.lubi-dragging .lubi-plan.is-resizing * { cursor: ns-resize !important; }
+.lubi-plan-head { display: flex; align-items: center; gap:var(--space-1); min-width: 0; line-height: 16px; }
+.lubi-plan-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--lubi-fs-sm); font-weight: var(--weight-strong); }
+.lubi-plan-time { font-size: var(--lubi-fs-xs); color: var(--lubi-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lubi-root .lubi-plan.is-compact { padding-top:0; padding-bottom:0; justify-content: center; }
+.lubi-plan.is-compact .lubi-plan-time { display: none; }
+@container (max-width: 560px) {
+  .lubi-root .lubi-tl-canvas.has-plans { --lubi-plan-w: 36%; }
+  .lubi-plan-time { display: none; }
+}
+
+/* 待确认：按计划自动记下的记录，虚线边框 + 徽标，确认后变回实色 */
+.lubi-root .lubi-block.is-pending {
+  background: var(--c-bg);
+  outline: 1.5px dashed color-mix(in srgb, var(--chip) 60%, transparent); outline-offset: -1.5px;
+}
+.lubi-pending-badge {
+  flex-shrink: 0; height: 16px; padding:0 var(--space-1); border-radius: var(--lubi-radius-pill); line-height: 16px;
+  font-size: var(--lubi-fs-xs); font-weight: var(--weight-strong); white-space: nowrap;
+  background: color-mix(in srgb, var(--lubi-warn) 16%, var(--background-primary));
+  color: color-mix(in srgb, var(--lubi-warn) 60%, var(--text-normal));
+}
+.lubi-kpi-pending { margin-top:var(--space-1); font-size: var(--lubi-fs-sm); color: color-mix(in srgb, var(--lubi-warn) 60%, var(--text-normal)); }
+
+/* 右栏：今日计划 + 空白时段 */
+.lubi-plan-note { margin:var(--space-1) 0 var(--space-1); }
+.lubi-plan-list, .lubi-gap-list { display: flex; flex-direction: column; gap:var(--space-1); }
+.lubi-plan-row, .lubi-gap-row { display: flex; align-items: center; gap:var(--space-1); min-width: 0; }
+.lubi-root button.lubi-plan-row-main:not(.clickable-icon), .lubi-root button.lubi-gap-row-main:not(.clickable-icon) {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap:var(--space-2); height: auto; min-height: 30px; padding:var(--space-1) var(--space-1);
+  border: 0; box-shadow: var(--shadow-default); background: transparent; border-radius: var(--lubi-radius-ctl); text-align: left; cursor: pointer;
+  font-size: var(--font-ui-small); color: var(--text-normal);
+}
+.lubi-root button.lubi-plan-row-main:not(.clickable-icon):hover, .lubi-root button.lubi-gap-row-main:not(.clickable-icon):hover { background: var(--background-modifier-hover); }
+.lubi-plan-row-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lubi-plan-row-est { font-variant-numeric: tabular-nums; }
+.lubi-gap-row-main { justify-content: space-between; }
+.lubi-gap-row-time { font-variant-numeric: tabular-nums; font-weight: var(--weight-strong); }
+.lubi-root .lubi-gap-row-main .lubi-muted { margin-left:auto; font-variant-numeric: tabular-nums; }
+.lubi-modal .lubi-mode-row { display: flex; align-items: center; justify-content: space-between; gap: var(--lubi-gap-2); flex-wrap: wrap; }
+.lubi-modal .lubi-mode-row:empty { display: none; }
+.lubi-modal .lubi-mode-row .lubi-money-seg:only-child { margin-left:0; }
+
+/* 周日程表头与表身列对齐：表头多一条与滚动条等宽的轨道（宽度由 tasks.ts 实测写入 --lubi-week-sbw） */
+.lubi-root .lubi-week { grid-template-columns: 48px repeat(7, minmax(0, 1fr)) var(--lubi-week-sbw, 0px); }
+/* 周日程表头：没有负载条/全天任务时收紧高度，日期按钮贴顶 */
+.lubi-root .lubi-week-day { min-height: 0; padding:var(--space-1) var(--space-1); display: flex; flex-direction: column; }
+.lubi-root .lubi-week-day .lubi-load { margin-top:var(--space-1); }
+
+/* 当天清单也是任务拖放目标，使用内描边避免布局跳动。 */
+.lubi-root .lubi-list-card.is-drop { background: color-mix(in srgb, var(--lubi-info) 10%, var(--background-primary)); box-shadow: var(--shadow-default); }
+
+/* 拖放位置提示不占空间，不改变排期。 */
+.lubi-root .lubi-task.is-sort-before { box-shadow: var(--shadow-default); }
+.lubi-root .lubi-task.is-sort-after { box-shadow: var(--shadow-default); }
+
+/* 全天任务摘要：标题 / 元信息 / 可选备注 / 操作提示。 */
+.lubi-tip:has(.lubi-task-tip-title) { width: 260px; max-width: calc(100vw - 16px); padding:var(--space-2) var(--space-3); font-size: var(--text-small); line-height: 1.6; overflow-wrap: anywhere; }
+.lubi-task-tip-title { font-size: var(--text-ui); font-weight: var(--weight-strong); margin-bottom:var(--space-1); }
+.lubi-task-tip-notes { margin-top:var(--space-1); white-space: pre-wrap; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+
+/* 全插件统一悬停；颜色只作用于 Lubi，不覆盖 Obsidian 的 .tooltip。 */
+.lubi-tip { box-sizing: border-box; max-width: min(300px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: hidden; padding:var(--space-2) var(--space-3); border-radius: 8px; background: var(--background-primary); color: var(--text-normal); border: 1px solid var(--background-modifier-border); box-shadow: var(--shadow-default); font-size: var(--text-small); line-height: 1.6; overflow-wrap: anywhere; }
+.lubi-tip > div:only-child { font-weight: normal; margin:0; }
+/* 短按钮提示与任务详情分层；不添加动画或恢复已移除的提示。 */
+.lubi-tip.is-label { padding:var(--space-1) var(--space-2); line-height: 1.5; box-shadow: var(--shadow-default); }
+
+/* 实际浏览器对比度检查：统计变化值使用可读的语义色，而非纯亮色。 */
+.lubi-kpi-delta.is-up, .lubi-insight-delta.is-ok { color: color-mix(in srgb, var(--lubi-ok) 55%, var(--text-normal)); }
+.lubi-kpi-delta.is-down, .lubi-insight-delta.is-warn { color: color-mix(in srgb, var(--lubi-warn) 55%, var(--text-normal)); }
+
+.lubi-load.is-high .lubi-load-text { color: color-mix(in srgb, var(--lubi-warn) 55%, var(--text-normal)); }
+
+/* 精简页面：容器合并，次要内容使用原生折叠，保留键盘及触屏入口。 */
+.lubi-root .lubi-task-lists { gap:0; }
+.lubi-task-lists > .lubi-list-card:not(:first-child), .lubi-task-lists > .lubi-agenda-host { border-top: 1px solid var(--lubi-line-soft); margin-top: var(--lubi-gap-3); padding-top: var(--lubi-gap-3); }
+.lubi-section { min-width: 0; }
+.lubi-first-record { display: flex; align-items: center; gap: var(--lubi-gap-2); }
+.lubi-section > .lubi-panel-title { margin-bottom: var(--lubi-gap-2); }
+.lubi-fold > summary { display: list-item; cursor: pointer; color: var(--text-muted); font-size: var(--lubi-fs-sm); font-weight: var(--weight-strong); }
+.lubi-fold > summary:hover { color: var(--text-normal); }
+.lubi-fold > summary:focus-visible, .lubi-summary-item:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); }
+.lubi-fold > summary .lubi-panel-title { display: inline; font: inherit; margin-right: var(--lubi-gap-2); }
+.lubi-fold[open] > summary { margin-bottom: var(--lubi-gap-3); }
+.lubi-review-extras { margin-top: var(--lubi-gap-3); }
+.lubi-root .lubi-task-actions .lubi-icon-btn:not(.lubi-task-start) { display: none; }
+.lubi-root .lubi-task:hover .lubi-task-actions .lubi-icon-btn,
+.lubi-root .lubi-task:focus-within .lubi-task-actions .lubi-icon-btn { display: inline-flex; }
+@media (hover: none), (pointer: coarse) {
+  .lubi-root .lubi-task-actions .lubi-icon-btn, .lubi-root .lubi-block-actions { display: inline-flex; }
+}
+
+/* 记录与计划统一两按钮工具条；操作按钮位于拖拽手柄上层。 */
+.lubi-plan:hover:not(.is-dragging) .lubi-block-actions, .lubi-plan:focus-within:not(.is-dragging) .lubi-block-actions { display: inline-flex; }
+.lubi-plan.is-compact .lubi-block-actions { top: 0; right: 2px; }
+.lubi-plan.is-compact .lubi-block-actions .lubi-icon-btn { width: 20px; height: 16px; }
+.lubi-root button.lubi-pending-badge { height: auto; min-height: 0; border: 0; box-shadow: var(--shadow-default); cursor: pointer; }
+
+/* 今日计划：任务名称为主，时间使用等宽数字，沿用已做 / 总数进度。 */
+:is(.lubi-plan-card, .lubi-selected-day-list) > .lubi-panel-head { justify-content: space-between; }
+:is(.lubi-plan-card, .lubi-selected-day-list) > .lubi-panel-head > .lubi-muted { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.lubi-plan-task-list .lubi-task { --lubi-task-line: calc(var(--lubi-fs-md) * 1.4); padding: 10px var(--lubi-task-pad-x); border-radius: 0; border-bottom-color: var(--lubi-line-soft); }
+.lubi-plan-task-list .lubi-task-title { font-size: var(--lubi-fs-md); }
+.lubi-plan-task-list .lubi-task-meta { margin-top:var(--space-1); font-size: var(--lubi-fs-sm); }
+.lubi-plan-task-list .lubi-task-body:has(.lubi-task-title > .lubi-dot) .lubi-task-meta { padding-left:var(--space-3); }
+.lubi-plan-task-list .lubi-task-meta-time { color: var(--text-normal); font-weight: var(--weight-strong); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lubi-plan-progress { height: 8px; border-radius: var(--lubi-radius-pill); background: var(--lubi-line-soft); overflow: hidden; margin-bottom: var(--lubi-gap-3); }
+.lubi-plan-progress-fill { height: 100%; background: var(--lubi-ok); border-radius: inherit; }
+
+/* 设置页：普通分区与两层分类字段，不为每个设置绘制装饰卡片。 */
+.lubi-settings { container-type: inline-size; width: 100%; max-width: 860px; align-self: stretch; margin-inline:auto; padding:var(--space-4) var(--space-6); box-sizing: border-box; color: var(--text-normal); }
+.lubi-settings-intro, .lubi-settings-note { color: var(--text-muted); font-size: var(--text-ui); line-height: 1.6; margin:0 0 var(--space-3); }
+.lubi-settings-section { margin-top:var(--space-6); min-width: 0; }
+.lubi-settings .lubi-settings-section > h3 { margin:0 0 var(--space-2); padding:0; font-size: var(--text-body); font-weight: 650; text-align: left; }
+.lubi-settings .lubi-settings-section .setting-item { display: flex; align-items: center; gap:var(--space-4); padding:var(--space-3) 0; margin:0; border: 0; border-bottom: 1px solid var(--background-modifier-border); border-radius: 0; background: transparent; box-shadow: var(--shadow-default); }
+.lubi-settings .lubi-settings-section .setting-item-info { flex: 1 1 0; width: auto; max-width: none; min-width: 0; margin:0; text-align: left; }
+.lubi-settings .setting-item-name { font-size: var(--text-ui); }
+.lubi-settings .lubi-settings-section .setting-item-description { margin-top:var(--space-1); width: auto; max-width: none; color: var(--text-muted); font-size: var(--text-small); line-height: 1.5; text-align: left; }
+.lubi-settings .lubi-settings-section .setting-item-control { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap:var(--space-2); min-width: 0; max-width: 100%; text-align: left; }
+.lubi-settings .lubi-settings-section .setting-item-control > input[type="text"], .lubi-settings .lubi-settings-section .setting-item-control > input, .lubi-settings .lubi-settings-section .setting-item-control > textarea { width: 230px; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.lubi-settings .setting-item-control > textarea { min-height: 64px; resize: vertical; }
+.lubi-settings .setting-item-control > select { height: 30px; border-radius: 6px; }
+.lubi-settings .lubi-settings-section .lubi-settings-range .setting-item-control select { width: 84px; }
+.lubi-settings .lubi-category-row .setting-item-info, .lubi-settings .lubi-settings-actions .setting-item-info { display: none; }
+.lubi-settings .lubi-category-row .setting-item-control { display: grid; grid-template-columns: var(--lubi-category-columns); align-items: center; width: 100%; gap:var(--space-2); }
+.lubi-settings .lubi-settings-section .lubi-settings-field { display: flex; flex-direction: column; align-items: stretch; gap:var(--space-1); min-width: 0; width: 100%; margin:0; text-align: left; box-sizing: border-box; }
+.lubi-settings .lubi-settings-section .lubi-settings-field-label { display: block; width: 100%; color: var(--text-muted); font-size: var(--text-small); line-height: 1.4; text-align: left; }
+.lubi-settings .lubi-settings-section .lubi-settings-field > input[type="text"], .lubi-settings .lubi-settings-section .lubi-settings-field > input, .lubi-settings .lubi-settings-section .lubi-settings-field > select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.lubi-settings .lubi-settings-section .lubi-setting-stacked { align-items: stretch; flex-direction: column; gap:var(--space-2); }
+.lubi-settings .lubi-settings-section .lubi-setting-stacked .setting-item-control { flex: 0 0 auto; width: 100%; justify-content: flex-start; }
+.lubi-settings .lubi-settings-section .lubi-setting-stacked .setting-item-control > input { width: 100%; }
+.lubi-settings .lubi-settings-section .lubi-setting-stacked .setting-item-info { flex: 0 0 auto; width: 100%; }
+.lubi-settings .lubi-settings-actions .setting-item-control { justify-content: flex-start; width: 100%; }
+.lubi-settings-ai > summary { display: list-item; cursor: pointer; font-size: var(--text-body); font-weight: 650; line-height: 1.6; }
+.lubi-settings-ai[open] > summary { margin-bottom:var(--space-3); }
+.lubi-settings-ai-model { margin-left:var(--space-2); font-size: var(--text-small); font-weight: var(--weight-regular); color: var(--text-muted); overflow-wrap: anywhere; }
+.lubi-settings button.lubi-icon-btn { width: 32px; height: 32px; padding:0; border: 0; background: transparent; box-shadow: var(--shadow-default); color: var(--text-muted); cursor: pointer; }
+.lubi-settings button.lubi-icon-btn:hover { background: var(--background-modifier-hover); }
+.lubi-settings button.lubi-icon-btn:disabled { opacity: 0.45; cursor: default; }
+.lubi-settings .lubi-settings-maintenance-button { color: var(--text-error); background: var(--background-primary); border: 1px solid var(--background-modifier-border); box-shadow: var(--shadow-default); }
+.lubi-settings :is(input, select, textarea, button, summary, [role="checkbox"]):focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); box-shadow: var(--shadow-default); }
+@container (max-width: 600px) {
+  .lubi-settings .lubi-settings-section .setting-item:not(.lubi-category-row) { align-items: stretch; flex-direction: column; gap:var(--space-2); }
+  .lubi-settings .setting-item-control { width: 100%; justify-content: flex-start; }
+  .lubi-settings .lubi-settings-section .setting-item-control > input[type="text"], .lubi-settings .lubi-settings-section .setting-item-control > input, .lubi-settings .lubi-settings-section .setting-item-control > textarea { width: 100%; }
+}
+
+@supports not (container-type: inline-size) {
+  @media (max-width: 650px) {
+    .lubi-settings .lubi-settings-section .setting-item:not(.lubi-category-row) { align-items: stretch; flex-direction: column; gap:var(--space-2); }
+    .lubi-settings .setting-item-control { width: 100%; justify-content: flex-start; }
+    .lubi-settings .lubi-settings-section .setting-item-control > input[type="text"], .lubi-settings .lubi-settings-section .setting-item-control > input, .lubi-settings .lubi-settings-section .setting-item-control > textarea { width: 100%; }
+  }
+}
+
+/* 分类：桌面一行一个分类，表头只出现一次；窄屏保留可读字段标签。 */
+.lubi-settings .lubi-cat-settings { --lubi-category-columns: minmax(90px, 1.2fr) minmax(105px, 1.4fr) minmax(70px, .9fr) 54px 74px 64px; }
+.lubi-settings .lubi-category-header { display: grid; grid-template-columns: var(--lubi-category-columns); gap:var(--space-2); padding:var(--space-2) 0; color: var(--text-muted); font-size: var(--text-small); text-align: left; }
+.lubi-settings .lubi-category-header > :nth-child(4), .lubi-settings .lubi-category-header > :last-child { text-align: center; }
+.lubi-settings .lubi-settings-section .lubi-category-row { padding:var(--space-1) 0; }
+.lubi-settings .lubi-category-row .lubi-settings-field-label { display: none; }
+.lubi-settings .lubi-category-row .lubi-settings-field { gap:0; }
+.lubi-settings .lubi-category-row .lubi-settings-field[data-category-field="background"] { align-items: center; justify-content: center; }
+.lubi-settings .lubi-category-row .lubi-settings-field > input, .lubi-settings .lubi-category-row .lubi-settings-field > select { height: 30px; }
+.lubi-settings .lubi-category-actions { display: flex; align-items: center; justify-content: flex-end; gap:var(--space-1); }
+.lubi-settings .lubi-category-actions button.lubi-icon-btn { width: 28px; height: 30px; }
+@container (max-width: 560px) {
+  .lubi-settings .lubi-category-header { display: none; }
+  .lubi-settings .lubi-category-row .setting-item-control { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:var(--space-2); }
+  .lubi-settings .lubi-category-row .lubi-settings-field[data-category-field="name"], .lubi-settings .lubi-category-actions { grid-column: 1 / -1; }
+  .lubi-settings .lubi-category-row .lubi-settings-field-label { display: block; }
+  .lubi-settings .lubi-category-row .lubi-settings-field { gap:var(--space-1); }
+  .lubi-settings .lubi-category-row .lubi-settings-field[data-category-field="background"] { align-items: flex-start; }
+}
+@supports not (container-type: inline-size) {
+  @media (max-width: 608px) {
+    .lubi-settings .lubi-category-header { display: none; }
+    .lubi-settings .lubi-category-row .setting-item-control { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:var(--space-2); }
+    .lubi-settings .lubi-category-row .lubi-settings-field[data-category-field="name"], .lubi-settings .lubi-category-actions { grid-column: 1 / -1; }
+    .lubi-settings .lubi-category-row .lubi-settings-field-label { display: block; }
+    .lubi-settings .lubi-category-row .lubi-settings-field { gap:var(--space-1); }
+    .lubi-settings .lubi-category-row .lubi-settings-field[data-category-field="background"] { align-items: flex-start; }
+  }
+}
+
+/* 每日页：普通悬停和选择仍按区域显示；拖动时间线连接到左侧刻度。 */
+.lubi-root .lubi-tl-canvas > .lubi-tl-hover, .lubi-root .lubi-tl-canvas > .lubi-block-ghost { left: 0; right: auto; width: var(--lubi-rec-w); }
+.lubi-root .lubi-tl-canvas > .lubi-tl-hover[data-area="plan"], .lubi-root .lubi-tl-canvas > .lubi-block-ghost[data-area="plan"] { left: var(--lubi-rec-w); width: var(--lubi-plan-w); }
+.lubi-root .lubi-tl-canvas > .lubi-tl-hover[data-area="plan"] .lubi-tl-hover-label { left: 4px; transform: none; }
+.lubi-root .lubi-tl-canvas > .lubi-tl-hover.is-drag-guide[data-area="plan"] { left: 0; width: calc(var(--lubi-rec-w) + var(--lubi-plan-w)); }
+.lubi-root .lubi-timeline .lubi-drag-obscured { visibility: hidden; }
+/* 卡片内续接时间线；不改整张卡片的层级，也不覆盖并行记录角标。 */
+.lubi-root .lubi-drag-guide-segment { position: absolute; height: 0; border-top: 1px dashed var(--text-faint); z-index: 1; pointer-events: none; }
+.lubi-root .lubi-drag-guide-host > :is(.lubi-block-head, .lubi-block-meta, .lubi-plan-head, .lubi-plan-time) { position: relative; z-index: 2; }
+
+.lubi-root .lubi-tl-canvas > .lubi-block-ghost[data-area="plan"] { --chip: var(--lubi-info); border-color: var(--lubi-info); background: color-mix(in srgb, var(--lubi-info) 12%, var(--background-primary)); }
+.lubi-root .lubi-block-ghost[data-area="plan"] .lubi-block-head { color: var(--text-normal); }
+.lubi-plan-gap { position: absolute; left: calc(var(--lubi-rec-w) + 6px); right: 4px; z-index: 1; border-radius: 6px; }
+.lubi-plan-gap:hover { outline: 1.5px dashed color-mix(in srgb, var(--text-muted) 55%, transparent); outline-offset: -1px; background: color-mix(in srgb, var(--background-modifier-hover) 60%, transparent); }

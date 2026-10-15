@@ -1,0 +1,21 @@
+
+/* Light task editing: a short default form with an independently scrolling body and fixed actions. */
+.lubi-modal.lubi-light-task { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+.lubi-light-task .modal-content { overflow: hidden; min-height: 0; max-height: calc(100dvh - 140px); gap: 0; }
+.lubi-light-task .lubi-light-body { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; min-height: 0; padding: 4px 2px 12px; }
+.lubi-light-task .lubi-light-meta,.lubi-light-task .lubi-plan-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
+.lubi-light-task .lubi-light-meta > .lubi-field:first-child { grid-column: auto; }
+.lubi-light-task .lubi-light-meta label { display: flex; flex-direction: column; gap: 4px; }
+.lubi-light-task .lubi-light-meta select { width: 100%; }
+.lubi-light-task .lubi-project-create[hidden] { display: none !important; }
+.lubi-light-task .lubi-project-create { flex-wrap: wrap; }
+.lubi-light-task .lubi-light-meta input[data-task-project="name"] { flex-basis: 100%; }
+.lubi-light-task .lubi-light-recording { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--lubi-fs-sm); color: var(--text-muted); }
+.lubi-light-task .lubi-light-more { border-top: 1px solid var(--lubi-border); padding-top: 12px; }
+.lubi-light-task .lubi-light-more > summary { cursor: pointer; font-size: var(--lubi-fs-sm); color: var(--text-muted); overflow-wrap: anywhere; line-height: 1.6; }
+.lubi-light-task .lubi-light-more[open] > :not(summary) { margin-top: 12px; }
+.lubi-light-task .lubi-light-more .lubi-extras { margin: 12px 0; }
+.lubi-light-task .lubi-modal-actions { flex: 0 0 auto; padding: 12px 0 0; background: var(--background-primary); }
+.lubi-light-task .lubi-light-body > .lubi-field textarea { min-height: 76px; max-height: 180px; resize: vertical; }
+.lubi-light-task input,.lubi-light-task select,.lubi-light-task textarea { min-width: 0; max-width: 100%; }
+@media(max-width: 380px) { .lubi-light-task .lubi-light-meta,.lubi-light-task .lubi-plan-grid { gap: 8px; } }
