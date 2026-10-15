@@ -1,7 +1,7 @@
 # 生成 README 与教学手册截图（演示数据，无真实记录）。
 # 用法（在 插件源码/lubi 下）：
 #   npm run build                                    # 类型检查与生产包 main.js
-#   TZ=Asia/Shanghai node test/preview-manual.mjs    # 渲染静态预览页到 preview/manual/
+#   TZ=Asia/Shanghai node test/helpers/preview-manual.mjs    # 渲染静态预览页到 preview/manual/
 #   pip install playwright pillow && python -m playwright install chromium
 #   TZ=Asia/Shanghai python scripts/screenshots.py
 # 字体默认 Noto Sans CJK，可用 LUBI_FONT / LUBI_FONT_BOLD / LUBI_FONT_INDEX 指定
@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import asyncio, pathlib, io
 from playwright.async_api import async_playwright
 ROOT = pathlib.Path(__file__).resolve().parents[1]          # 插件源码/lubi
-B = ROOT / "preview" / "manual"                              # node test/preview-manual.mjs 的输出
+B = ROOT / "preview" / "manual"                              # node test/helpers/preview-manual.mjs 的输出
 MAN = ROOT.parents[1] / "附件" / "lubi手册"                   # 教学手册配图
 RD = ROOT.parents[1] / "docs" / "images"                     # README 配图
 MAN.mkdir(parents=True, exist_ok=True); RD.mkdir(parents=True, exist_ok=True)

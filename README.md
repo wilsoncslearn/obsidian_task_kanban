@@ -264,14 +264,15 @@ npm ci           # 按锁文件安装；Node/npm 版本以依赖 engines 为准
 npm run dev      # 监听构建
 npm run build    # 类型检查 + 压缩生产构建（保留类名），输出 main.js
 npm test         # 核心逻辑 + 冒烟测试 + 布局回归
+npm run check:dist   # 生产构建并核对 Vault 中的三个分发文件
 ```
 
 - 优先在独立测试 Vault 验证；不要用个人日记做自动化测试。
 - 本仓库是可直接打开的 Vault，已有 `.obsidian/plugins/lubi/` 分发文件随仓库跟踪；源码目录中的生成物仍忽略。发布前同步三个文件并核对哈希，之后在 Obsidian 禁用再启用 Lubi 或重启。
 - Windows PowerShell 可设置 `$env:LUBI_OUT` 为测试插件目录后运行 `npm run build`；不提交具体本机路径。
-- 生产包验证：构建并运行核心测试后，PowerShell 设置 `$env:LUBI_TEST_PLUGIN="../main.js"`，再执行 `node test/smoke.mjs` 和 `node test/ui-interactions.mjs`，验证实际生产包。
+- 生产包验证：先 `npm run build`，再在 PowerShell 设置 `$env:LUBI_TEST_PLUGIN="../../main.js"`（相对测试文件，也可写绝对路径），执行 `node --test "test/smoke/*.mjs"`，用实际生产包跑全部冒烟测试。
 - 布局回归测试需要 Chrome / Edge，设置环境变量 `LUBI_BROWSER` 指向浏览器可执行文件，否则自动跳过；正式验证同时设置 `LUBI_REQUIRE_BROWSER=1`，避免把跳过当通过；
-- README 与教学手册的截图由演示数据生成：`node test/preview-manual.mjs` 渲染静态预览页，再运行 `python scripts/screenshots.py` 截图（依赖 Playwright + Pillow，详见脚本开头）。
+- README 与教学手册的截图由演示数据生成：`node test/helpers/preview-manual.mjs` 渲染静态预览页，再运行 `python scripts/screenshots.py` 截图（依赖 Playwright + Pillow，详见脚本开头）。
 
 ## 仓库结构
 

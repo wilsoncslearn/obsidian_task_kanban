@@ -27,8 +27,8 @@
 - `插件源码/lubi/src/ui/productivity.ts`：五个功能页与确认交互。
 - `插件源码/lubi/src/core/tasks.ts`：可选元数据及冲突保护批量写入。
 - `插件源码/lubi/src/core/curl.ts`、`插件源码/lubi/src/main.ts`：TLS、地址校验、会话 Key、功能入口。
-- `插件源码/lubi/test/productivity.mjs`：合成数据的功能／失败／并发／幂等／UI 交互测试。
-- `插件源码/lubi/test/productivity-layout.mjs`：生产 UI 的 Chromium 明暗主题、320／900px、五个功能页共 20 个布局场景。
+- `插件源码/lubi/test/smoke/productivity.mjs`：合成数据的功能／失败／并发／幂等／UI 交互测试。
+- `插件源码/lubi/test/layout/productivity-layout.mjs`：生产 UI 的 Chromium 明暗主题、320／900px、五个功能页共 20 个布局场景。
 
 ## 验证与安装
 

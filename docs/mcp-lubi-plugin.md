@@ -78,9 +78,9 @@
 
 1. 在独立测试 Vault 或隔离副本操作，用 `npm ci` 按锁文件安装。
 2. `npm run build` 执行类型检查与压缩生产构建；`npm test` 运行核心、模拟 UI 和浏览器布局。设置回归使用合成配置与模拟接口，不访问真实服务；浏览器检查包含 AI 收起 / 展开、明暗主题及窄屏，并在插件样式之后叠加原生设置规则，检查标签左对齐、字段填充及说明文字宽度，避免仅在简化主题下通过。
-3. 布局验证设置 `LUBI_REQUIRE_BROWSER=1`，必要时设置本机 `LUBI_BROWSER`，禁止将跳过当通过。
-4. 构建产物可通过 `LUBI_OUT` 写到测试目录。验证真实生产包时设置 `LUBI_TEST_PLUGIN=../main.js` 后执行 `node test/smoke.mjs`；路径相对 test 文件。
-5. 本仓库已有分发目录被 Git 跟踪，应同步 main.js、styles.css、manifest.json 并核对哈希；源码目录生成物不提交。
+3. 布局验证设置 `LUBI_REQUIRE_BROWSER=1`，必要时设置本机 `LUBI_BROWSER`，禁止将跳过当通过。测试分在 `test/core`（纯逻辑）、`test/smoke`（模拟 Obsidian 交互）和 `test/layout`（真实浏览器布局），公共代码在 `test/helpers`，测试包输出到被忽略的 `test/.out/`。
+4. 构建产物可通过 `LUBI_OUT` 写到测试目录。验证真实生产包时设置 `LUBI_TEST_PLUGIN=../../main.js`（相对测试文件，也可写绝对路径）后执行 `node --test "test/smoke/*.mjs"`。
+5. 本仓库已有分发目录被 Git 跟踪，应同步 main.js、styles.css、manifest.json；`npm run check:dist` 会重新构建并核对这三个文件。源码目录生成物不提交。
 6. 热重载调试：`npm run dev:vault` 以监听模式构建到本仓库 `.obsidian/plugins/lubi/`，并同步 `styles.css`、`manifest.json` 的修改；该目录的 `.hotreload`（本机空标记文件，已被 .gitignore 忽略，缺失时新建即可）让已启用的 hot-reload 插件在文件变化后自动禁用再启用 Lubi（整体重载，界面内存状态会重置）。开发版未压缩、带内联 sourcemap，且直接读写本 Vault 数据；提交前运行 `npm run build:vault` 覆盖为生产包并核对哈希。
 7. 在真实 Obsidian 中重启或禁用再启用插件，人工检查关键路径、空状态、错误输入与移动端。模拟测试不能替代这一步。
 
@@ -129,4 +129,4 @@ Task 保留 v14，新增可选 `executor`（self/background）和 `backgroundRun
 
 ## MONO 专项回归
 
-`test/monochrome.mjs` 已接入 `test:smoke`，覆盖生产 bundle 的优先级、侧栏、本人记录／同时完成、独立记录不造规划以及重复完成／实际日期分离和取消保护。`test/monochrome-layout.mjs` 已接入 `test:layout`；先以最新生产 bundle 生成 `preview`，再用 `LUBI_REQUIRE_BROWSER=1` 运行明／暗 × 1400/1024/820/620/390/320px × 主列表／异步工作／关联记录 36 例，检查无横向溢出、局部灰度、控件名称、折叠与保存可达。它是原生浏览器合成 fixture 验证，不是实机 Obsidian 或移动端验收；不得用原型检查替代。
+`test/smoke/monochrome.mjs` 已接入 `test:smoke`，覆盖生产 bundle 的优先级、侧栏、本人记录／同时完成、独立记录不造规划以及重复完成／实际日期分离和取消保护。`test/layout/monochrome-layout.mjs` 已接入 `test:layout`；先以最新生产 bundle 生成 `preview`，再用 `LUBI_REQUIRE_BROWSER=1` 运行明／暗 × 1400/1024/820/620/390/320px × 主列表／异步工作／关联记录 36 例，检查无横向溢出、局部灰度、控件名称、折叠与保存可达。它是原生浏览器合成 fixture 验证，不是实机 Obsidian 或移动端验收；不得用原型检查替代。

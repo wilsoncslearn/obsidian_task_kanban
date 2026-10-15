@@ -1,0 +1,76 @@
+// Public unified entry + journal-backed actual time. Synthetic memory Vault only.
+import assert from 'node:assert/strict';
+import * as O from '../helpers/mock-obsidian.js';
+import Module from 'node:module';
+import {createRequire} from 'node:module';
+const load=Module._load;Module._load=function(id,...args){return id==='obsidian'?O:load.call(this,id,...args)};
+const Plugin=createRequire(import.meta.url)(process.env.LUBI_TEST_PLUGIN||'../.out/plugin.cjs').default;
+const {blankTask,PENDING_KEY,formatEstimateComparison}=await import('../.out/core.mjs');
+const app=new O.App(),plugin=new Plugin(app,{id:'lubi',version:'1.6.0'});await plugin.onload();await plugin.tasks.load();
+const D='2026-10-06',wait=ms=>new Promise(r=>setTimeout(r,ms));
+const view=await plugin.activateView('today',D);await wait(200);plugin.quickLog();await wait(40);
+const first=O.openModals.at(-1),TaskForm=first.constructor;
+assert.equal(TaskForm.name,'TaskModal');assert.deepEqual([...first.contentEl.querySelectorAll('.lubi-kind-seg button')].map(b=>b.dataset.lubiFocus),['seg:todo','seg:money']);assert(first.contentEl.querySelector('[data-actual=minutes]'));assert(!first.contentEl.querySelector('input[type=text]')?.matches(':focus'),'the quickLog command remains the planning/new-task route; independent time entry has its own title focus');first.close();
+// Shared task form: repeat follows title, with separate repeat/plan/actual sections.
+const sectionForm=new TaskForm(app,plugin,{recordDate:D});sectionForm.open();
+const repeatField=sectionForm.contentEl.querySelector('.lubi-repeat-field');
+assert.equal(repeatField.previousElementSibling.querySelector('label').textContent,'任务');
+assert.equal(repeatField.nextElementSibling.className,'lubi-field lubi-location-field');
+assert.equal(repeatField.nextElementSibling.nextElementSibling.tagName,'HR');
+const plan=sectionForm.contentEl.querySelector('.lubi-plan-grid');
+assert.equal(plan.previousElementSibling,repeatField.nextElementSibling.nextElementSibling);
+assert.equal(plan.nextElementSibling.tagName,'HR');
+assert.equal(sectionForm.contentEl.querySelectorAll('.lubi-task-divider').length,2);
+sectionForm.repeatSelect.value='weekly';sectionForm.repeatSelect.dispatchEvent(new window.Event('change',{bubbles:true}));
+assert.equal(sectionForm.contentEl.querySelector('.lubi-repeat-field').nextElementSibling.className,'lubi-days');
+assert.equal(sectionForm.contentEl.querySelector('.lubi-days').nextElementSibling.className,'lubi-field lubi-location-field');
+sectionForm.close();
+const set=(modal,selector,value,event='input')=>{const input=modal.contentEl.querySelector(selector);assert(input,selector);input.value=value;input.dispatchEvent(new window.Event(event,{bubbles:true}));};
+const open=async opts=>{const modal=new TaskForm(app,plugin,{recordDate:D,...opts});modal.open();await modal.actualLoading;await wait(5);return modal};
+const rows=async id=>(await plugin.journal.read(D)).filter(r=>r.rec.task===id);
+// Optional location roundtrip, clearing and cancel safety, with unknown metadata retained.
+let locationForm=await open({defaults:{title:'地点回归'}});
+set(locationForm,'[data-task-location]','  图书馆  ');await locationForm.save();
+let located=plugin.tasks.all.find(t=>t.title==='地点回归');assert.equal(located.location,'图书馆');
+await plugin.tasks.load(true);located=plugin.tasks.byId(located.id);assert.equal(located.location,'图书馆');
+located.customLocationTest='保留未知字段';await plugin.tasks.upsert(located);
+locationForm=await open({task:located});assert.equal(locationForm.contentEl.querySelector('[data-task-location]').value,'图书馆');
+set(locationForm,'[data-task-location]','教室');locationForm.close();assert.equal(plugin.tasks.byId(located.id).location,'图书馆');
+locationForm=await open({task:plugin.tasks.byId(located.id)});set(locationForm,'[data-task-location]','');await locationForm.save();
+assert.equal(plugin.tasks.byId(located.id).location,'');assert.equal(plugin.tasks.byId(located.id).customLocationTest,'保留未知字段');
+console.log('PASS task location: save, reload, edit, clear, cancel and unknown-field preservation');
+// One shared new-task view for topbar creation and the right planning-lane selection.
+const formShape=m=>[...m.contentEl.querySelectorAll('label, .lubi-actual-details > summary, .lubi-kind-seg button')].map(e=>e.textContent);
+const checkNewForm=m=>{assert.equal(m.constructor,TaskForm);const d=m.contentEl.querySelector('.lubi-actual-details');assert(d&&!d.hidden);assert.equal(d.tagName,'DIV');assert(!d.querySelector('summary'));assert(!m.contentEl.textContent.includes('实际发生时间'));assert(m.contentEl.querySelector('[data-actual=date]'));assert(m.contentEl.querySelector('[data-actual=start]'));assert(!m.contentEl.textContent.includes('留空保存计划；填写实际用时后保存并完成任务'));};
+view.openNew();await wait(40);let header=O.openModals.at(-1);checkNewForm(header);const shape=formShape(header);assert.deepEqual([...header.contentEl.querySelectorAll('.lubi-plan-grid label')].map(e=>e.textContent),['计划开始日期','计划开始时间','预计用时']);assert.deepEqual([...header.contentEl.querySelectorAll('.lubi-actual-details label')].map(e=>e.textContent),['实际开始日期','实际开始时间','实际用时']);assert(header.contentEl.querySelector('[data-actual=minutes]').closest('.lubi-actual-details')); assert(header.contentEl.querySelector('.lubi-actual-hint').hidden);
+header.contentEl.querySelector('[data-actual=minutes]').focus();set(header,'[data-actual=minutes]','3.08h');assert.equal(document.activeElement,header.contentEl.querySelector('[data-actual=minutes]'),'duration typing retains focus');set(header,'[data-actual=start]','07:00','change');assert(header.contentEl.querySelector('.lubi-actual-hint').hidden);assert(!header.contentEl.textContent.includes('实际 3.08h'));header.close();
+await plugin.tasks.upsert(blankTask({id:'shared-form-plan-lane',title:'合成规划区域',date:D,start:'07:45',estimate:160,category:'学习'}));view.show('today',D);await wait(220);
+const canvas=view.contentEl.querySelector('.lubi-tl-canvas'),lane=canvas.querySelector('.lubi-plan-lane');assert(lane);canvas.getBoundingClientRect=()=>({top:100,left:100,right:500,width:400,height:1344,bottom:1444});lane.getBoundingClientRect=()=>({top:68,left:350,right:500,width:150,height:1376,bottom:1444});
+const pointer=(target,type,minute)=>{const e=new window.MouseEvent(type,{bubbles:true,cancelable:true,clientX:425,clientY:100+minute*56/60,button:0});Object.defineProperty(e,'pointerId',{value:7401});target.dispatchEvent(e)};
+const beforeSelection=JSON.stringify([...app.vault.files]);pointer(canvas,'pointerdown',465);pointer(window,'pointermove',625);pointer(window,'pointerup',625);await wait(40);
+let selected=O.openModals.at(-1);checkNewForm(selected);assert.deepEqual(formShape(selected),shape);assert.equal(selected.t.start,'07:45');assert.equal(selected.t.estimate,160);assert.equal(selected.contentEl.querySelector('[data-actual=minutes]').value,'');assert(selected.contentEl.querySelector('.lubi-actual-hint').hidden);selected.close();assert.equal(JSON.stringify([...app.vault.files]),beforeSelection,'cancelled shared form writes nothing');
+await plugin.tasks.remove('shared-form-plan-lane');view.show('today',D);await wait(220);
+
+let modal=await open({defaults:{title:'计划与实际',date:D,start:'09:00',estimate:45}});set(modal,'[data-actual=minutes]','60');set(modal,'[data-actual=start]','10:00','change');await modal.save(true);
+let task=plugin.tasks.all.find(t=>t.title==='计划与实际'),id=task.id,record=(await rows(id))[0].rec;
+assert.equal(task.status,'done');assert.equal(task.start,'09:00');assert.equal(task.estimate,45);assert.equal(record.start,'10:00');assert.equal(record.minutes,60);assert.equal(record.estimatedMinutes,45);assert(!record.extra[PENDING_KEY]);assert.equal(task.doneLogs[D].start,'10:00');assert(!Object.hasOwn(task,'actualMinutes'));assert.equal(JSON.parse(app.vault.files.get('任务/任务数据.json')).version,14);
+modal=await open({actualRequired:true,task});assert.equal(modal.contentEl.querySelector('[data-actual=minutes]').value,'1h');await modal.save();assert.equal((await rows(id)).length,1);
+modal=await open({actualRequired:true,task:plugin.tasks.byId(id)});set(modal,'[data-actual=minutes]','75');modal.estimateInput.value='90';modal.estimateInput.dispatchEvent(new window.Event('input',{bubbles:true}));await modal.save();record=(await rows(id))[0].rec;assert.equal(record.minutes,75);assert.equal(record.estimatedMinutes,45);assert.equal(plugin.tasks.byId(id).estimate,90);assert.equal((await rows(id)).length,1);
+modal=await open({defaults:{title:'开始未核对',date:D,start:'13:00',estimate:20}});set(modal,'[data-actual=minutes]','30');await modal.save();task=plugin.tasks.all.find(t=>t.title==='开始未核对');record=(await rows(task.id))[0].rec;assert.equal(record.extra[PENDING_KEY],'实际开始未核对');assert.equal(record.minutes,30);assert(formatEstimateComparison(record).includes('实际 30min'));assert(formatEstimateComparison(record).includes('实际开始待核对'));
+modal=await open({actualRequired:true,task});assert.equal(modal.contentEl.querySelector('[data-actual=start]').value,'');set(modal,'[data-actual=start]','13:15','change');await modal.save();assert(!(await rows(task.id))[0].rec.extra[PENDING_KEY]);
+const repeat=await plugin.tasks.upsert(blankTask({title:'每天的任务',created:'2020-01-01T00:00:00Z',startDate:'2020-01-01',repeat:{kind:'daily',days:[]},category:'学习',estimate:10}));modal=await open({actualRequired:true,task:repeat});set(modal,'[data-actual=minutes]','15');set(modal,'[data-actual=start]','14:00','change');await modal.save(true);assert.deepEqual(plugin.tasks.byId(repeat.id).doneDates,[D]);assert.equal(plugin.tasks.byId(repeat.id).repeat.kind,'daily');assert.equal((await rows(repeat.id)).length,1);
+modal=await open({defaults:{title:'跨夜实际',date:D}});set(modal,'[data-actual=minutes]','90');set(modal,'[data-actual=start]','23:30','change');await modal.save();
+task=plugin.tasks.all.find(t=>t.title==='跨夜实际');assert.equal((await rows(task.id))[0].rec.minutes,30);assert.equal((await plugin.journal.read('2026-10-07')).find(row=>row.rec.task===task.id).rec.minutes,60);modal=await open({actualRequired:true,task});assert(modal.contentEl.querySelector('[data-actual=minutes]').disabled);modal.close();
+modal=await open({defaults:{title:'跨日写入失败',date:'2026-10-09'},recordDate:'2026-10-09'});set(modal,'[data-actual=minutes]','90');set(modal,'[data-actual=start]','23:30','change');
+const processFile=app.vault.process.bind(app.vault);app.vault.process=async(file,fn)=>{if(file.path==='日记/2026-10-10.md')throw Error('测试第二日写入失败');return processFile(file,fn)};await modal.save();app.vault.process=processFile;assert(O.openModals.includes(modal));assert.equal((await plugin.journal.read('2026-10-09')).length,0);assert.equal((await plugin.journal.read('2026-10-10')).length,0);assert(!plugin.tasks.all.some(t=>t.title==='跨日写入失败'));modal.close();
+const parent=await plugin.tasks.upsert(blankTask({title:'父任务',category:'学习'})),child=await plugin.tasks.upsert(blankTask({title:'子任务',parent:parent.id,category:'学习',date:D}));modal=await open({actualRequired:true,task:child});set(modal,'[data-actual=minutes]','10');set(modal,'[data-actual=start]','15:00','change');await modal.save(true);assert.equal(plugin.tasks.byId(parent.id).status,'done');
+modal=await open({defaults:{title:'取消不保存',date:D}});set(modal,'[data-actual=minutes]','20');const beforeCancel=JSON.stringify([...app.vault.files]);modal.close();assert.equal(JSON.stringify([...app.vault.files]),beforeCancel);
+for(const value of ['abc','0','25h']){modal=await open({defaults:{title:'无效实际'+value,date:D}});set(modal,'[data-actual=minutes]',value);await modal.save();assert(O.openModals.includes(modal));assert(!plugin.tasks.all.some(t=>t.title==='无效实际'+value));modal.close();}
+modal=await open({actualRequired:true,task:plugin.tasks.byId(id)});set(modal,'[data-actual=minutes]','80');await plugin.tasks.upsert({...plugin.tasks.byId(id),estimate:120,notes:'其他操作更新的计划'});await modal.save();assert.equal(plugin.tasks.byId(id).estimate,120);assert.equal(plugin.tasks.byId(id).notes,'其他操作更新的计划');assert.equal((await rows(id))[0].rec.estimatedMinutes,45);
+const blocked=await plugin.tasks.upsert(blankTask({title:'写日记失败',category:'学习',date:D}));modal=await open({actualRequired:true,task:blocked});set(modal,'[data-actual=minutes]','20');const add=plugin.journal.add.bind(plugin.journal);plugin.journal.add=async()=>{throw Error('测试日记写入失败')};await modal.save();plugin.journal.add=add;assert(O.openModals.includes(modal));assert.equal(plugin.tasks.byId(blocked.id).status,'todo');assert.equal((await rows(blocked.id)).length,0);modal.close();
+modal=await open({actualRequired:true,task:blocked});set(modal,'[data-actual=minutes]','20');const upsert=plugin.tasks.upsert.bind(plugin.tasks);plugin.tasks.upsert=async()=>{throw Error('测试任务写入失败')};await modal.save();plugin.tasks.upsert=upsert;assert(O.openModals.includes(modal));assert.equal((await rows(blocked.id)).length,0);assert.equal(plugin.tasks.byId(blocked.id).status,'todo');modal.close();
+modal=await open({actualRequired:true,task:blocked});set(modal,'[data-actual=minutes]','20');await plugin.journal.add({date:D,start:'16:00',minutes:10,title:blocked.title,category:'学习',task:blocked.id,extra:{自定义:'保留'}});await modal.save();assert(O.openModals.includes(modal));assert.equal((await rows(blocked.id)).length,1);assert.equal((await rows(blocked.id))[0].rec.extra.自定义,'保留');modal.close();
+const multiple=await plugin.tasks.upsert(blankTask({title:'分段任务',category:'学习',date:D}));for(const start of ['17:00','18:00'])await plugin.journal.add({date:D,start,minutes:10,title:multiple.title,category:'学习',task:multiple.id,extra:{}});modal=await open({actualRequired:true,task:multiple});assert(modal.contentEl.querySelector('[data-actual=minutes]').disabled);await modal.save();assert.equal((await rows(multiple.id)).length,2);
+view.show('today',D);await wait(200);plugin.quickLog();modal=O.openModals.at(-1);set(modal,'input[type=text]','19:00-19:30 学习 临时学习');await modal.save();task=plugin.tasks.all.find(t=>t.title==='临时学习');assert(task);assert.equal(task.estimate,0);assert.equal((await rows(task.id))[0].rec.minutes,30);assert.equal((await rows(task.id))[0].rec.estimatedMinutes,undefined);
+plugin.quickLog();modal=O.openModals.at(-1);set(modal,'input[type=text]','支出切换草稿');modal.contentEl.querySelector('.lubi-kind-seg button[data-lubi-focus="seg:money"]').click();await wait(5);let spending=O.openModals.at(-1);assert.equal(spending.constructor.name,'RecordModal');assert.equal(spending.rec.title,'支出切换草稿');assert(![...spending.contentEl.querySelectorAll('.lubi-kind-seg button')].some(b=>b.textContent.includes('记录时间')));spending.contentEl.querySelector('.lubi-kind-seg button[data-lubi-focus="seg:todo"]').click();await wait(5);modal=O.openModals.at(-1);assert.equal(modal.t.title,'支出切换草稿');modal.close();
+plugin.onunload();await view.onClose();console.log('ok   unified task entry: actual/estimated separation, pending start, repeat completion, snapshots, idempotence, cancel, failures, concurrency and spending draft');
