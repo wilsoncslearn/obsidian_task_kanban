@@ -97,23 +97,24 @@
 .lubi-root .lubi-tl-rail { right: auto; left: calc(100% - var(--rail-w)); }
 
 .lubi-root .lubi-block {
-  --c-bg: color-mix(in srgb, var(--chip) 14%, var(--background-primary));
-  --c-bg-hover: color-mix(in srgb, var(--chip) 22%, var(--background-primary));
-  --c-fg: color-mix(in srgb, var(--chip) 58%, var(--text-normal));
-  background: var(--c-bg); padding:var(--space-1) var(--space-2) var(--space-1) var(--space-3); border-radius: 6px;
+  --c-bg: var(--color-surface);
+  --c-bg-hover: color-mix(in srgb, var(--color-ink) 8%, var(--color-canvas));
+  --c-fg: var(--color-ink);
+  background: var(--c-bg); border: var(--border-width) solid var(--color-border); padding: var(--space-1) var(--space-3); border-radius: var(--radius-md);
 }
 .theme-dark .lubi-root .lubi-block {
-  --c-bg: color-mix(in srgb, var(--chip) 24%, var(--background-primary));
-  --c-bg-hover: color-mix(in srgb, var(--chip) 34%, var(--background-primary));
-  --c-fg: color-mix(in srgb, var(--chip) 40%, var(--text-normal));
+  --c-bg: var(--color-surface);
+  --c-bg-hover: color-mix(in srgb, var(--color-ink) 8%, var(--color-canvas));
+  --c-fg: var(--color-ink);
 }
-.lubi-root .lubi-block::before { width: 4px; border-radius: 6px 0 0 6px; }
+.lubi-root .lubi-block::before { width: 3px; background: var(--color-control-border); border-radius: var(--radius-md) 0 0 var(--radius-md); }
 .lubi-root .lubi-block.lubi-block-compact { padding-top:0; padding-bottom:0; display: flex; align-items: center; }
 .lubi-root .lubi-block.lubi-block-compact .lubi-block-head { line-height: 14px; font-size: var(--lubi-fs-sm); min-width: 0; }
 .lubi-root .lubi-block.lubi-block-compact .lubi-block-icon svg { width: 12px; height: 12px; }
 .lubi-root .lubi-block:hover { background: var(--c-bg-hover); }
-.lubi-root .lubi-block-head { gap:var(--space-1); }
-.lubi-root .lubi-block-title { flex: 0 1 auto; color: var(--c-fg); }
+.lubi-root .lubi-block-head { gap: var(--space-2); }
+.lubi-root .lubi-block-icon svg { color: var(--color-muted); }
+.lubi-root .lubi-block-title { flex: 1 1 auto; color: var(--c-fg); font-weight: var(--weight-medium); }
 .lubi-root .lubi-block-dur { flex: 0 0 auto; font-size: var(--lubi-fs-xs); color: var(--text-muted); font-weight: var(--weight-strong); }
 .lubi-block-meta { display: none; gap:var(--space-1); min-width: 0; margin-top:var(--space-1); font-size: var(--lubi-fs-xs); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .lubi-root .lubi-block.has-meta .lubi-block-meta { display: flex; }
@@ -166,7 +167,7 @@
 .lubi-root .lubi-legend-pct { font-size: var(--lubi-fs-xs); }
 /* 待办行：▶ 开始 */
 /* 按钮中心对齐标题首行；按钮框右缘贴齐卡片内容右缘（与进度条、添加按钮一致） */
-.lubi-root .lubi-task-actions { --lubi-task-action-size: 28px; gap:var(--space-1); background: var(--background-primary); border-radius: 6px; margin-top: calc((var(--lubi-task-line, 18px) - var(--lubi-task-action-size)) / 2); margin-right: calc(-1 * var(--lubi-task-pad-x, 6px)); }
+.lubi-root .lubi-task-actions { gap:var(--space-1); background: var(--background-primary); border-radius: 6px; margin-top: calc((var(--lubi-task-line, 18px) - var(--lubi-task-action-size)) / 2); margin-right: calc(-1 * var(--lubi-task-pad-x, 6px)); }
 .lubi-root .lubi-task-actions button.lubi-icon-btn:not(.clickable-icon) { width: var(--lubi-task-action-size); height: var(--lubi-task-action-size); }
 .lubi-root .lubi-task-start svg { color: var(--lubi-ok); }
 .lubi-root .lubi-task:focus-within .lubi-task-actions { display: inline-flex; }
@@ -336,7 +337,7 @@
 @media (pointer: coarse) {
   .lubi-root button.lubi-gap-btn:not(.clickable-icon) { opacity: 1; pointer-events: auto; }
   .lubi-root .lubi-task-list .lubi-task { padding-block: max(10px, calc((44px - var(--lubi-task-line)) / 2)); }
-  .lubi-root .lubi-task-actions { --lubi-task-action-size: 44px; display: inline-flex; margin-top: calc((var(--lubi-task-line, 18px) - var(--lubi-task-action-size)) / 2); }
+  .lubi-root .lubi-task-actions { display: inline-flex; margin-top: calc((var(--lubi-task-line, 18px) - var(--lubi-task-action-size)) / 2); }
 }
 @media (prefers-reduced-motion: reduce) {
   .lubi-switch-thumb, .lubi-switch-track { transition: none; }

@@ -3,11 +3,11 @@
 .lubi-modal { width: min(560px, 92vw); padding:var(--space-6) var(--space-6) var(--space-6); border-radius: 14px; }
 .lubi-modal-sm { width: min(400px, 92vw); }
 .lubi-modal .modal-close-button { top: 14px; right: 14px; }
-.lubi-modal .modal-title { display: flex; align-items: baseline; gap:var(--space-2); font-size: var(--text-title); font-weight: var(--weight-strong); margin:0 0 var(--space-4); line-height: 1.2; }
+.lubi-modal .modal-title { display: flex; align-items: baseline; gap:var(--space-2); margin:0 0 var(--space-4); line-height: 1.2; }
 .lubi-modal .modal-content { display: flex; flex-direction: column; gap:var(--space-4); }
 .lubi-modal-ctx { font-size: var(--font-ui-small); font-weight: var(--weight-regular); color: var(--lubi-muted); font-variant-numeric: tabular-nums; }
-.lubi-record-modal { width: 500px; max-width: 92vw; }
-.lubi-record-modal::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--chip); border-radius: 14px 14px 0 0; transition: background 0.15s; }
+.lubi-record-modal { max-width: 92vw; }
+.lubi-record-modal::before { content: ""; position: absolute; left: 0; right: 0; top: 0; background: var(--chip); border-radius: 14px 14px 0 0; transition: background 0.15s; }
 .lubi-confirm-body { margin:calc(-1 * var(--space-1)) 0 var(--space-1); color: var(--lubi-muted); font-size: var(--font-ui-small); line-height: 1.6; }
 .lubi-delete-opts { display: flex; flex-direction: column; gap:var(--space-2); font-size: var(--font-ui-small); }
 .lubi-delete-opt { display: flex; align-items: flex-start; gap:var(--space-2); padding:var(--space-2) var(--space-3); border: 1px solid var(--lubi-border); border-radius: 10px; cursor: pointer; line-height: 1.5; }

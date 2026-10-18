@@ -142,7 +142,7 @@
   text-align: left; justify-content: flex-start; white-space: normal; overflow-wrap: anywhere;
 }
 .lubi-root button.lubi-btn.lubi-task-group-title:hover { background: var(--background-modifier-hover); color: var(--lubi-accent); }
-.lubi-root button.lubi-week-day-button:not(.clickable-icon) { width: 100%; height: auto; min-height: 40px; padding:0; text-align: center; }
+.lubi-root button.lubi-week-day-button:not(.clickable-icon) { width: 100%; height: auto; min-height: 40px; text-align: center; }
 .lubi-root button.lubi-week-day-button:hover { background: var(--background-modifier-hover); }
 
 .lubi-root button.lubi-allday-chip:not(.clickable-icon) {

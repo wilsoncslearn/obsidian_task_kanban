@@ -56,7 +56,7 @@
 .lubi-week-card { padding-bottom:0; }
 .lubi-week { display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--lubi-border); }
 .lubi-week-corner { border-right: 1px solid var(--lubi-border); }
-.lubi-week-day { padding:var(--space-1) var(--space-1) var(--space-1); border-right: 1px solid var(--lubi-border); text-align: center; cursor: pointer; min-height: 52px; min-width: 0; }
+.lubi-week-day { padding:var(--space-1) var(--space-1) var(--space-1); border-right: 1px solid var(--lubi-border); text-align: center; min-height: 52px; min-width: 0; }
 .lubi-week-day:last-child { border-right: none; }
 .lubi-week-day.is-today .lubi-week-dow { color: var(--lubi-accent); }
 .lubi-week-day.is-selected { background: color-mix(in srgb, var(--lubi-accent) 8%, transparent); }
@@ -66,7 +66,7 @@
 .lubi-allday { display: flex; flex-direction: column; gap:var(--space-1); margin-top:var(--space-1); min-width: 0; }
 .lubi-allday-chip { font-size: var(--text-code); padding:var(--space-1) var(--space-1); border-radius: 4px; background: color-mix(in srgb, var(--chip) 18%, var(--background-primary)); border-left: 2px solid var(--chip); text-align: left; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; cursor: grab; }
 .lubi-allday-chip.is-done { text-decoration: line-through; opacity: 0.6; }
-.lubi-week-body { grid-column: 1 / -1; display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); max-height: calc(100vh - 320px); min-height: 360px; overflow-y: auto; border-top: 1px solid var(--lubi-border); }
+.lubi-week-body { grid-column: 1 / -1; display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); overflow-y: auto; border-top: 1px solid var(--lubi-border); }
 .lubi-week-hours { position: relative; border-right: 1px solid var(--lubi-border); }
 .lubi-week-hour { position: absolute; right: 6px; transform: translateY(-50%); font-size: var(--text-code); color: var(--lubi-muted); font-variant-numeric: tabular-nums; }
 .lubi-week-hour.is-day-end { transform: translateY(-100%); }

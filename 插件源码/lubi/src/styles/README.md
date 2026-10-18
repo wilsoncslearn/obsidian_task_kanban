@@ -5,6 +5,7 @@
 - 分段按原文件的先后顺序切开，后面的规则可以覆盖前面同等优先级的规则，所以**不要调换文件顺序**，也不要把规则挪到别的分段。
 - 改样式时直接修改原有规则，不在文件末尾追加覆盖；焦点与选中状态统一使用 `--focus-*` 变量。
 - 新增分段文件后，正在运行的 `npm run dev` / `npm run dev:vault` 需要重启才会监听它。
+- 调整样式结构（拆分、去重）时，用计算样式快照证明没有视觉变化：先 `npm run test:build && node test/helpers/preview.mjs`，把当前 `styles.css` 复制一份，运行 `node scripts/style-snapshot.mjs test/.out/before.json`；改完后重新构建，运行 `node scripts/style-snapshot.mjs test/.out/after.json --swap-css <旧 styles.css> styles.css`，再用 `--compare 前 后 --ignore lubi-gantt-today` 比较两份快照（甘特图的“当前时刻”线随时间变化，需要排除）。
 
 | 文件 | 内容 |
 | --- | --- |

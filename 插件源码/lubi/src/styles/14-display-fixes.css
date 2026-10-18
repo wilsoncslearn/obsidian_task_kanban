@@ -9,9 +9,10 @@
 .lubi-root .lubi-task-actions .lubi-task-start { white-space: nowrap; }
 .lubi-done-fold { border-top: 1px solid var(--lubi-border); margin-top: 4px; }
 .lubi-done-fold > summary { cursor: pointer; padding: 8px 6px; font-size: var(--lubi-fs-sm); color: var(--text-muted); }
-.lubi-planning-nav { border: 1px solid var(--lubi-border); border-radius: 999px; padding: 2px 4px; background: var(--background-primary); gap: 2px; }
-.lubi-nav-date { font-size: var(--lubi-fs-sm); font-weight: var(--weight-strong); white-space: nowrap; padding: 0 4px; font-variant-numeric: tabular-nums; }
-.lubi-planning-nav .lubi-nav-today { white-space: nowrap; }
+.lubi-planning-nav { border: var(--border-width) solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-1); background: var(--color-canvas); gap: var(--space-1); }
+.lubi-root .lubi-planning-nav button.lubi-icon-btn:not(.clickable-icon) { border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-muted); }
+.lubi-nav-date { font-size: var(--text-ui); font-weight: var(--weight-strong); white-space: nowrap; padding: 0 var(--space-2); font-variant-numeric: tabular-nums; }
+.lubi-root .lubi-planning-nav button.lubi-nav-today.lubi-btn:not(.clickable-icon) { height: var(--lubi-compact-control); padding: 0 var(--space-2); border: var(--border-width) solid transparent; border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-muted); font-size: var(--text-small); font-weight: var(--weight-medium); white-space: nowrap; }
 /* Task rows stay on one line at every width: title gets the space, record stays top-right. */
 .lubi-root .lubi-task { flex-wrap: nowrap; }
 .lubi-root .lubi-task-body { flex: 1 1 auto; min-width: 0; }

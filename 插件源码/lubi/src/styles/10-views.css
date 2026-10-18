@@ -18,14 +18,13 @@
 .lubi-root .lubi-tasks.is-gantt .lubi-tasks-week { display: block; min-width: 0; }
 .lubi-root .lubi-tasks.is-gantt .lubi-agenda-host { display: none; }
 .lubi-gantt-scroll { --gantt-name-w: 160px; --gantt-day-w: 34px; max-width: 100%; max-height: 580px; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--lubi-border); border-radius: 6px; }
-.lubi-gantt-table { min-width: calc(var(--gantt-name-w) + var(--gantt-count, 7) * var(--gantt-day-w)); }
 .lubi-gantt-heading, .lubi-gantt-row { display: grid; grid-template-columns: var(--gantt-name-w) minmax(0, 1fr); min-height: 38px; }
 .lubi-gantt-heading { min-height: 44px; position: sticky; top: 0; isolation: isolate; z-index: 7; background: var(--background-secondary); }
 .lubi-gantt-row { border-top: 1px solid var(--lubi-border); }
-.lubi-gantt-name { position: sticky; left: 0; z-index: 5; display: flex; align-items: center; gap:var(--space-1); min-width: 0; padding: 4px 6px 4px calc(6px + var(--gantt-indent, 0px)); border-right: 1px solid var(--lubi-border); background: var(--background-primary); }
+.lubi-gantt-name { position: sticky; z-index: 5; display: flex; align-items: center; gap:var(--space-1); min-width: 0; padding: 4px 6px 4px calc(6px + var(--gantt-indent, 0px)); border-right: 1px solid var(--lubi-border); background: var(--background-primary); }
 .lubi-gantt-heading > .lubi-gantt-name { justify-content: center; z-index: 8; background: var(--background-secondary); font-size: var(--font-ui-small); font-weight: var(--weight-strong); }
 .lubi-root button.lubi-gantt-title:not(.clickable-icon) { min-width: 0; flex: 1; height: auto; padding:0; border: 0; box-shadow: var(--shadow-default); background: transparent; text-align: left; color: var(--text-normal); font-size: var(--font-ui-small); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lubi-gantt-spacer { width: 28px; flex-shrink: 0; }
+.lubi-gantt-spacer { flex-shrink: 0; }
 .lubi-gantt-collapse { flex-shrink: 0; }
 .lubi-gantt-dates { display: grid; grid-template-columns: repeat(var(--gantt-count, 7), minmax(0, 1fr)); }
 .lubi-root button.lubi-gantt-date:not(.clickable-icon) { height: auto; min-height: 38px; padding:var(--space-1); border: 0; border-right: 1px solid var(--lubi-border); border-radius: 0; box-shadow: var(--shadow-default); background: transparent; font-size: var(--text-code); white-space: normal; line-height: 1.35; }
@@ -36,7 +35,7 @@
 .lubi-gantt-grid > .is-weekend:not(.is-future) { background: var(--background-secondary); }
 .lubi-gantt-track { background: var(--background-primary); }
 .lubi-gantt-today[hidden] { display: none; }
-.lubi-gantt-today { position: absolute; top: -1px; bottom: 0; width: 0; border-left: 1px solid var(--lubi-info); pointer-events: none; z-index: 1; }
+.lubi-gantt-today { position: absolute; top: -1px; bottom: 0; width: 0; border-left: 1px solid var(--lubi-info); pointer-events: none; }
 .lubi-gantt-bar { position: absolute; top: 8px; height: 22px; border-radius: 4px; overflow: hidden; z-index: 2; cursor: pointer; background: color-mix(in srgb, var(--chip) 18%, var(--background-primary)); border-left: 0; box-shadow: var(--shadow-default); color: var(--text-normal); box-sizing: border-box; }
 .lubi-gantt-bar.is-editable { cursor: grab; touch-action: none; user-select: none; }
 .lubi-gantt-bar.is-summary { border: 1px solid var(--chip); background: var(--background-secondary); }
@@ -58,7 +57,6 @@
 .lubi-gantt-spacer { width: 22px; }
 
 /* Daily Gantt: a full 00:00–24:00 first-row axis, with endpoint gutters. */
-.lubi-daily-gantt-scroll .lubi-gantt-table { min-width: calc(var(--gantt-name-w) + 24 * var(--gantt-day-w) + 40px); }
 .lubi-daily-gantt-axis { position: relative; height: 44px; background: var(--background-secondary); }
 .lubi-daily-gantt-tick { position: absolute; top: 7px; transform: translateX(-50%); font-size: var(--text-code); white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-normal); }
 .lubi-daily-gantt-tick::after { content: ""; position: absolute; top: 21px; left: 50%; height: 10px; border-left: 1px solid var(--lubi-border); }
@@ -76,12 +74,10 @@
 /* Actual time reuses the task form; no separate time-entry tab or modal. */
 .lubi-task-modal .lubi-plan-grid > .lubi-plan-full-field { grid-column: 1 / -1; }
 .lubi-task-modal .lubi-plan-grid > .lubi-plan-start-field { grid-column: 2; }
-.lubi-task-modal .lubi-actual-details > .lubi-actual-field { margin-top:var(--space-3); }
 .lubi-actual-hint { margin:var(--space-2) 0; font-size: var(--text-small); line-height: 1.5; }
 .lubi-actual-details { margin:var(--space-2) 0 var(--space-3); }
 
 /* Unified planning views: keep controls visible at every width, scroll only the plot. */
-.lubi-root .lubi-planning-head { flex-wrap: wrap; gap:var(--space-2) var(--space-3); margin-bottom:0; }
 .lubi-planning-head .lubi-seg { flex-shrink: 0; }
 .lubi-root .lubi-planning-top { grid-template-columns: minmax(0, 1fr) 300px; }
 /* 日历·日复用每日页两张摘要卡，不嵌套大卡或挤压环形图。 */
@@ -161,7 +157,7 @@
 
 .lubi-task-modal [data-task-project="name"] { flex: 1; width: auto; min-width: 0; }
 
-.lubi-gantt-project-heading { display: grid; grid-template-columns: var(--gantt-name-w) minmax(0, 1fr); min-height: 28px; border-top: 1px solid var(--lubi-border); background: var(--background-secondary); }
+.lubi-gantt-project-heading { grid-template-columns: var(--gantt-name-w) minmax(0, 1fr); border-top: 1px solid var(--lubi-border); background: var(--background-secondary); }
 .lubi-gantt-project-heading > .lubi-gantt-name { justify-content: center; text-align: center; background: var(--background-secondary); font-size: var(--font-ui-small); font-weight: var(--weight-strong); overflow-wrap: anywhere; }
 
 /* Project labels span their task group at the left, rather than taking a heading row. */
@@ -182,7 +178,7 @@
 .lubi-settings [data-lubi-update-link] { color: var(--text-normal); text-decoration: underline; text-underline-offset: 2px; }
 
 /* Task form sections and individually outlined optional controls. */
-.lubi-task-modal .lubi-task-divider { border: 0; border-top: 1px solid var(--lubi-border); margin:var(--space-3) 0; }
+.lubi-task-modal .lubi-task-divider { border: 0; border-top: 1px solid var(--lubi-border); }
 .lubi-task-modal .lubi-extras-toggles { margin-left:0; gap:var(--space-1); }
 .lubi-modal.lubi-task-modal .lubi-extras-toggles button.lubi-ghost-btn:not(.clickable-icon),
 .lubi-modal.lubi-task-modal .lubi-modal-actions button.lubi-btn-ghost:not(.clickable-icon) { border: 1px solid var(--lubi-border); border-radius: var(--lubi-radius-s); }

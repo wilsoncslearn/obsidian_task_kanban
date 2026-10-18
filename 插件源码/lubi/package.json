@@ -14,7 +14,8 @@
     "test:smoke": "npm run test:build && node --test \"test/smoke/*.mjs\"",
     "test:layout": "npm run test:build && node test/helpers/preview.mjs && node --test --test-concurrency=1 \"test/layout/*.mjs\"",
     "test": "npm run test:core && npm run test:smoke && npm run test:layout",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "bench": "node scripts/build-tests.mjs && node test/bench/render.mjs"
   },
   "license": "MIT",
   "devDependencies": {

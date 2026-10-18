@@ -100,7 +100,6 @@ body.lubi-dragging .lubi-plan.is-resizing, body.lubi-dragging .lubi-plan.is-resi
 .lubi-load.is-high .lubi-load-text { color: color-mix(in srgb, var(--lubi-warn) 55%, var(--text-normal)); }
 
 /* 精简页面：容器合并，次要内容使用原生折叠，保留键盘及触屏入口。 */
-.lubi-root .lubi-task-lists { gap:0; }
 .lubi-task-lists > .lubi-list-card:not(:first-child), .lubi-task-lists > .lubi-agenda-host { border-top: 1px solid var(--lubi-line-soft); margin-top: var(--lubi-gap-3); padding-top: var(--lubi-gap-3); }
 .lubi-section { min-width: 0; }
 .lubi-first-record { display: flex; align-items: center; gap: var(--lubi-gap-2); }

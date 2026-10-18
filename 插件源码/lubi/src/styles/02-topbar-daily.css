@@ -36,7 +36,7 @@
 @container (max-width: 900px) { .lubi-today-top, .lubi-today-main, .lubi-today-side { grid-column: auto; grid-row: auto; } }
 
 .lubi-timeline-scroll {
-  height: calc(100vh - 180px); min-height: 420px; overflow-y: auto;
+  overflow-y: auto;
   border: 1px solid var(--lubi-border); border-radius: 12px; background: var(--lubi-card-bg);
 }
 .lubi-timeline { position: relative; --lubi-day-start-gutter: 32px; --rail-w: 0px; outline: none; }
@@ -52,9 +52,9 @@
 .lubi-hour-label.is-day-start { transform: none; }
 .lubi-hour-label.is-day-end { transform: translateY(-50%); }
 .lubi-now-label.is-near-day-start, .lubi-now-label.is-near-day-end { transform: none; }
-.lubi-tl-line { position: absolute; left: var(--lubi-gutter); right: 0; height: 0; border-top: 1px solid var(--lubi-border); pointer-events: none; }
+.lubi-tl-line { position: absolute; left: var(--lubi-gutter); right: 0; height: 0; border-top: 1px solid color-mix(in srgb, var(--color-border) 65%, var(--color-canvas)); pointer-events: none; }
 .lubi-tl-line.is-first { border-top-color: var(--lubi-border); }
-.lubi-tl-line-half { border-top-style: dashed; opacity: 0.45; }
+.lubi-tl-line-half { border-top-style: dotted; opacity: 0.35; }
 .lubi-tl-canvas {
   position: absolute; top: 0; bottom: 0; left: var(--lubi-gutter);
   width: calc(100% - var(--lubi-gutter) - var(--rail-w));
